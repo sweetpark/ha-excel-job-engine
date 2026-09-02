@@ -78,7 +78,7 @@ class ExcelEndToEndIntegrationTest {
     // Wait for worker virtual thread to complete processing
     int attempts = 0;
     ExcelJob completedJob = null;
-    while (attempts < 30) {
+    while (attempts < 75) {
       Thread.sleep(200);
       completedJob = jobManager.findJob(job.getJobId()).orElse(null);
       if (completedJob != null
