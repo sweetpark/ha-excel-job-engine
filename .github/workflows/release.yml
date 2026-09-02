@@ -1,36 +1,71 @@
-name: Release & Publish
+name: Auto Release & JitPack Deploy
 
 on:
   push:
-    tags:
-      - 'v*'
-
-permissions:
-  contents: write
-  packages: write
+    branches:
+      - main
 
 jobs:
-  publish:
+  auto-release:
+    name: Semantic Release & Warm-up
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Next Semantic Version & Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: v
+          default_bump: false
+          release_branches: main
 
       - name: Set up JDK 17
+        if: steps.tag_version.outputs.new_tag
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build and Publish
-        run: ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate Wrapper & Run Full Checks
+        if: steps.tag_version.outputs.new_tag
+        run: |
+          chmod +x gradlew
+          ./gradlew check --no-daemon
 
       - name: Create GitHub Release
+        if: steps.tag_version.outputs.new_tag
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: |
+            ${{ steps.tag_version.outputs.changelog }}
+
+            ### 📦 의존성 추가 (JitPack)
+            ```groovy
+            repositories {
+                mavenCentral()
+                maven { url 'https://jitpack.io' }
+            }
+
+            dependencies {
+                implementation 'com.github.sweetpark:ha-excel-job-engine:${{ steps.tag_version.outputs.new_tag }}'
+            }
+            ```
           generate_release_notes: true
+
+      - name: Trigger JitPack Build Warm-up
+        if: steps.tag_version.outputs.new_tag
+        run: |
+          echo "Triggering JitPack build for ${{ steps.tag_version.outputs.new_tag }}..."
+          curl -s -X GET "https://jitpack.io/api/builds/sweetpark/ha-excel-job-engine/${{ steps.tag_version.outputs.new_tag }}" || true

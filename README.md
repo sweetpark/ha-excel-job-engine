@@ -9,6 +9,9 @@
   </a>
   <img src="https://img.shields.io/badge/Java-17%20%7C%2021%2B-orange.svg?style=flat-square&logo=openjdk" alt="Java 17 / 21+" />
   <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg?style=flat-square&logo=springboot" alt="Spring Boot 3.x" />
+    <a href="https://jitpack.io/#sweetpark/ha-excel-job-engine">
+    <img src="https://jitpack.io/v/sweetpark/ha-excel-job-engine.svg" alt="JitPack" />
+  </a>
   <img src="https://img.shields.io/badge/Coverage-100%25%20Verified-success.svg?style=flat-square" alt="Coverage" />
 </p>
 
@@ -62,6 +65,7 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 | 💻 **[Client Integration Guide](docs/CLIENT_INTEGRATION_GUIDE.md)** | Frontend React custom hook (`useExcelExport`), progress bar handling, and AG Grid column adapter |
 | 🏛️ **[Architecture Design](docs/ARCHITECTURE.md)** | Deep dive into DB CAS atomicity, dual queue design, crash recovery, and storage abstraction |
 | 📐 **[Coding Conventions](docs/CONVENTIONS.md)** | Code style, Spotless formatting, SpotBugs static analysis, and Conventional Commits |
+| 🚀 **[Automated Release Workflow](docs/RELEASE_WORKFLOW.md)** | Semantic versioning, GitHub Release automation, and JitPack build warm-up |
 
 ## 🏛️ Architecture Overview
 
@@ -105,7 +109,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.github.sweetpark:ha-excel-job-engine:1.0.0'
+    // Replace with release tag (e.g. v1.0.0) or main-SNAPSHOT
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.0.0'
 }
 `
 
