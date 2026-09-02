@@ -1,0 +1,74 @@
+name: 🐛 Bug Report
+description: 발생한 버그나 비정상 동작을 제보합니다.
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        버그를 제보해 주셔서 감사합니다! 신속한 원인 파악을 위해 아래 항목을 상세히 작성해 주세요.
+  - type: textarea
+    id: description
+    attributes:
+      label: 버그 설명 (Description)
+      description: 어떤 문제가 발생했는지 명확하게 설명해 주세요.
+      placeholder: MyBatis XML 파일에서 특정 동적 태그 파싱 시 오류가 발생합니다.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법 (Steps to Reproduce)
+      description: 문제를 재현하기 위한 구체적인 단계를 작성해 주세요.
+      value: |
+        1. IntelliJ IDEA에서 XML 매퍼 파일 열기
+        2. 쿼리 블록 우클릭 -> 'Analyze SQL with AI' 클릭
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대했던 동작 (Expected Behavior)
+      description: 정상적인 상태라면 어떤 결과가 나와야 하는지 설명해 주세요.
+    validations:
+      required: true
+  - type: dropdown
+    id: ide_version
+    attributes:
+      label: IntelliJ IDEA 버전
+      options:
+        - "2024.3+"
+        - "2024.2"
+        - "2024.1"
+        - "기타 (직접 기재)"
+    validations:
+      required: true
+  - type: dropdown
+    id: db_type
+    attributes:
+      label: 사용 데이터베이스 (Database)
+      options:
+        - "MySQL 8.0+"
+        - "MySQL 5.7"
+        - "MariaDB 10.x+"
+        - "PostgreSQL"
+        - "H2 / 기타"
+    validations:
+      required: true
+  - type: dropdown
+    id: llm_provider
+    attributes:
+      label: 사용 AI 공급자 (LLM Provider)
+      options:
+        - "Ollama (Local LLM)"
+        - "OpenAI (GPT-4o / GPT-4o-mini)"
+        - "OpenRouter / vLLM / 기타"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 에러 로그 및 스택 트레이스 (Logs & Stack Trace)
+      description: IntelliJ `idea.log` 또는 콘솔에 출력된 에러 로그를 첨부해 주세요.
+      render: shell

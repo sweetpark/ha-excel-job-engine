@@ -1,0 +1,29 @@
+name: 💡 Feature Request
+description: 새로운 기능이나 개선 사항을 제안합니다.
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        새로운 아이디어를 제안해 주셔서 감사합니다! 플러그인의 발전 방향을 위해 구체적인 제안 배경을 작성해 주세요.
+  - type: textarea
+    id: problem
+    attributes:
+      label: 해결하고자 하는 문제 (Problem Statement)
+      description: 현재 어떤 불편함이나 제한 사항이 있는지 설명해 주세요.
+      placeholder: 현재 Oracle DB 환경에서는 실행계획 조회가 지원되지 않습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 제안하는 기능 및 해결책 (Proposed Solution)
+      description: 어떤 기능이 추가되면 좋을지 구체적으로 설명해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 고려했던 대안 (Alternatives Considered)
+      description: 제안하신 방법 외에 고려해 본 다른 대안이 있다면 적어주세요.
