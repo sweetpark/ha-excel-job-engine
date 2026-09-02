@@ -66,6 +66,7 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 | 🏛️ **[Architecture Design](docs/ARCHITECTURE.md)** | Deep dive into DB CAS atomicity, dual queue design, crash recovery, and storage abstraction |
 | 📐 **[Coding Conventions](docs/CONVENTIONS.md)** | Code style, Spotless formatting, SpotBugs static analysis, and Conventional Commits |
 | 🚀 **[Automated Release Workflow](docs/RELEASE_WORKFLOW.md)** | Semantic versioning, GitHub Release automation, and JitPack build warm-up |
+| 🛡️ **[Branch Protection Rules](docs/BRANCH_PROTECTION.md)** | Main branch PR review rules, required CI status checks, and merge policy |
 
 ## 🏛️ Architecture Overview
 
@@ -223,6 +224,22 @@ public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStrea
 `
 
 ---
+
+
+---
+
+## 💻 Frontend Client Example (React + TypeScript)
+
+We provide a production-ready, runnable frontend example module in [`examples/client-react`](examples/client-react):
+- **`useExcelExport` Hook**: Asynchronous export submission, status polling, progress bar %, and auto-download.
+- **`ExcelExportButton` Component**: Export button with floating progress modal and cancel button.
+- **AG Grid Adapter**: Utility function to convert AG Grid column definitions to `ExcelColumnDef[]`.
+
+```bash
+cd examples/client-react
+npm install
+npm run dev
+```
 
 ## 🐳 Running the 2-Node Cluster Demo
 

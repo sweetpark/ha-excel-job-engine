@@ -40,3 +40,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+### Frontend & Node ###
+node_modules/
+dist/
+.vite/
+*.log
