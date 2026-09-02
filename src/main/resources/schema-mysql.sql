@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS ha_excel_job (
+    job_id         VARCHAR(64)  NOT NULL,
+    biz_nm         VARCHAR(128) NOT NULL,
+    file_name      VARCHAR(256) NOT NULL,
+    worker         VARCHAR(64)  NOT NULL,
+    server_id      VARCHAR(128) NULL,
+    status         VARCHAR(20)  NOT NULL,
+    processed_rows INT          NOT NULL DEFAULT 0,
+    total_rows     INT          NOT NULL DEFAULT 0,
+    file_path      VARCHAR(512) NULL,
+    params_json    LONGTEXT     NULL,
+    columns_json   LONGTEXT     NULL,
+    template_id    VARCHAR(128) NULL,
+    error_msg      VARCHAR(1000) NULL,
+    cancel_yn      CHAR(1)      NULL DEFAULT 'N',
+    created_at     BIGINT       NOT NULL,
+    started_at     BIGINT       NULL,
+    completed_at   BIGINT       NULL,
+    PRIMARY KEY (job_id),
+    INDEX idx_ha_excel_status_created (status, created_at),
+    INDEX idx_ha_excel_active_check (worker, biz_nm, status, created_at),
+    INDEX idx_ha_excel_server_status (server_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

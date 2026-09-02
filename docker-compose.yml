@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: ha-excel-lb
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - node-1
+      - node-2
+
+  mariadb:
+    image: mariadb:11.2
+    container_name: ha-excel-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ha_excel_db
+      MYSQL_USER: hauser
+      MYSQL_PASSWORD: hapassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./src/main/resources/schema-mysql.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - mariadb_data:/var/lib/mysql
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-01T16-36-33Z
+    container_name: ha-excel-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  node-1:
+    build: .
+    container_name: ha-excel-node-1
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/ha_excel_db
+      SPRING_DATASOURCE_USERNAME: hauser
+      SPRING_DATASOURCE_PASSWORD: hapassword
+      HA_EXCEL_SERVER_ID: node-1
+      HA_EXCEL_STORAGE_TYPE: S3
+      HA_EXCEL_S3_ENDPOINT: http://minio:9000
+      HA_EXCEL_S3_BUCKET: excel-exports
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mariadb
+      - minio
+
+  node-2:
+    build: .
+    container_name: ha-excel-node-2
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/ha_excel_db
+      SPRING_DATASOURCE_USERNAME: hauser
+      SPRING_DATASOURCE_PASSWORD: hapassword
+      HA_EXCEL_SERVER_ID: node-2
+      HA_EXCEL_STORAGE_TYPE: S3
+      HA_EXCEL_S3_ENDPOINT: http://minio:9000
+      HA_EXCEL_S3_BUCKET: excel-exports
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mariadb
+      - minio
+
+volumes:
+  mariadb_data:
+  minio_data:

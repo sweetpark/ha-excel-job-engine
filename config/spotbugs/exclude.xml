@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude EI / EI2 / MS / CT warnings for Spring ConfigurationProperties, wrappers, and holders -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,MS_EXPOSE_REP,CT_CONSTRUCTOR_THROW"/>
+    </Match>
+</FindBugsFilter>

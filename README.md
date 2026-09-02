@@ -1,174 +1,242 @@
-# 🚀 ha-excel-job-engine
+# 📊 HA Excel Job Engine
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
-  <img src="https://img.shields.io/badge/Java-17%2B-orange.svg" alt="Java 17+" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg" alt="Spring Boot 3.x" />
-  <img src="https://img.shields.io/badge/Code%20Style-Google%20Java%20Format-brightgreen.svg" alt="Spotless" />
-  <img src="https://img.shields.io/badge/Static%20Analysis-SpotBugs-yellow.svg" alt="SpotBugs" />
-  <img src="https://img.shields.io/badge/Coverage-100%25%20(Core)-success.svg" alt="Coverage" />
-  <img src="https://img.shields.io/badge/AI%20Review-CodeRabbit-purple.svg" alt="CodeRabbit" />
+  <a href="https://github.com/sweetpark/ha-excel-job-engine/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/sweetpark/ha-excel-job-engine/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI Status" />
+  </a>
+  <a href="https://github.com/sweetpark/ha-excel-job-engine/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License" />
+  </a>
+  <img src="https://img.shields.io/badge/Java-17%20%7C%2021%2B-orange.svg?style=flat-square&logo=openjdk" alt="Java 17 / 21+" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg?style=flat-square&logo=springboot" alt="Spring Boot 3.x" />
+  <img src="https://img.shields.io/badge/Coverage-100%25%20Verified-success.svg?style=flat-square" alt="Coverage" />
 </p>
 
-> **Redis-Free High-Availability Distributed Job & Large-Scale Excel Export Engine for Spring Boot**  
-> 추가 인프라(Redis/Zookeeper) 없이 **DB CAS(Compare-And-Swap)와 Heartbeat 복구**를 통해 다중 서버(HA) 환경에서 중복 없는 분산 Job을 실행하고, **SXSSF 스트리밍 및 청크 ZIP 분할**로 OOM 없이 수십만 건의 대용량 엑셀을 안전하게 생성·다운로드하는 고가용성 엑셀 엔진입니다.
+<p align="center">
+  <b>Redis-Free High-Availability Distributed Job Queue & Out-Of-Memory Proof Excel Export Engine for Spring Boot</b>
+</p>
 
 ---
 
-## 📌 1. 프로젝트 개요 & 오픈소스 비전 (Open Source Vision)
+## 🌟 Why HA Excel Job Engine?
 
-### 💡 왜 이 엔진이 필요한가? (Problem Statement)
-* **대용량 엑셀 다운로드 시 메모리 폭발(OOM)**: 수만~수십만 건의 데이터를 일반 POI(`XSSFWorkbook`)로 메모리에 올릴 경우 Heap 메모리 고갈로 서버가 다운됩니다.
-* **로드밸런서(LB) 다중 서버 환경의 동시성 및 파일 공유 문제**: 여러 서버가 동일한 비동기 다운로드 Job을 중복 선점하거나, 1번 서버가 생성한 엑셀 파일을 사용자가 2번 서버로 다운로드 요청했을 때 파일을 찾지 못하는 문제가 발생합니다.
-* **과도한 인프라 도입 비용**: 분산 락(Distributed Lock) 하나를 위해 Redis나 Redisson 클러스터를 도입하고 운영하는 것은 소규모/중규모 시스템에 오버엔지니어링(비용·운영 부담)이 될 수 있습니다.
+In large-scale enterprise systems, exporting massive datasets (hundreds of thousands to millions of rows) often triggers catastrophic failures:
+- **JVM Heap Exhaustion (OOM Crash)** from buffering large workbook models in memory.
+- **Heavy Infrastructure Dependency**: Complex setups requiring Redis distributed locks (Redisson), Celery, or RabbitMQ clusters just to coordinate background workers across multiple nodes.
+- **Serverless/Multi-Node Desynchronization**: A file generated on Node A cannot be downloaded by a user routed to Node B without sticky sessions or complex reverse proxies.
+- **Unsafe Thread Interruption**: Abruptly terminating long-running POI streams corrupts ZIP packaging and leaves dangling file descriptors.
 
-### 🎯 오픈소스 비전 & 제공 형태
-* **무인프라(No-Redis) 경량 HA 분산 처리**:
-  * `UPDATE ha_excel_job SET status='RUNNING', server_id=? WHERE job_id=? AND status='PENDING'` 단건 영향 행 수(CAS)를 통해 원자적 선점 보장.
-  * 서버 비정상 다운 시 살아있는 노드가 **Heartbeat 기반 Orphan Job 자동 인수/복구**.
-* **Zero-OOM 3단계 스트리밍 파이프라인**:
-  1. `소량 (< 10k)`: 브라우저 즉시 생성 또는 메모리 처리.
-  2. `중용량 (10k ~ 100k)`: MyBatis Cursor 스트리밍 + Apache POI `SXSSFWorkbook` 임시 파일 플러시 단일 xlsx.
-  3. `초대용량 (> 100k)`: 50k 단위 청크 스트리밍 + 멀티 파일 ZIP 압축 다운로드.
-* **플러그형 멀티 클라우드 & 공유 스토리지 지원**:
-  * 설정(`application.yml`) 한 줄로 **Local, NAS, AWS S3, NCP(네이버클라우드), Azure Blob, GCP Cloud Storage**를 자유롭게 교체 가능.
-* **누구나 쓸 수 있는 Starter & Docker Compose 데모**:
-  * Spring Boot Starter 형태로 제공하며, 2개 노드 + DB 로드밸런싱 환경을 `docker-compose up` 한 번으로 직접 시연하고 테스트할 수 있는 Standalone 패키지 제공.
+**HA Excel Job Engine** resolves these challenges with an elegant, zero-external-middleware architecture.
 
 ---
 
-## ☁️ 2. 플러그형 스토리지 아키텍처 (Multi-Storage Architecture)
+## 🚀 Key Highlights
 
-다중 서버(HA) 환경에서 모든 노드가 생성된 엑셀 파일을 원활히 서빙할 수 있도록 **Strategy Pattern 기반의 `StorageProvider` 인터페이스**를 제공합니다.
-
-```
-ha-excel-job-engine
-  └── StorageProvider (Core Interface)
-        ├── LocalDiskStorageProvider       (로컬 디스크 / 단일 노드 테스트용)
-        ├── NasStorageProvider             (공유 파일시스템 / 온프레미스 다중 서버용)
-        ├── AwsS3StorageProvider           (AWS S3 & S3 호환 MinIO)
-        ├── NcpObjectStorageProvider       (네이버클라우드 플랫폼 S3 호환 스토리지)
-        ├── AzureBlobStorageProvider       (Microsoft Azure Blob Storage)
-        └── GcpCloudStorageProvider        (Google Cloud Storage)
-```
-
----
-
-## 🛡 3. Sweetpark 오픈소스 표준 품질 게이트 & CI/CD 파이프라인
-
-본 프로젝트는 `sweetpark` 오픈소스 표준 품질 관리 체계를 따릅니다.
-
-| 도구 | 역할 | 검증 방식 |
-| :--- | :--- | :--- |
-| **Spotless** | Google Java Format 스타일 자동 포맷팅 | `./gradlew spotlessCheck` (적용: `spotlessApply`) |
-| **SpotBugs** | Java 바이트코드 레벨 잠재적 버그/NPE 정적 분석 | `./gradlew spotbugsMain` |
-| **JaCoCo** | Core 엔진 모듈 **100% 라인 커버리지** 강제화 | `./gradlew jacocoTestCoverageVerification` |
-| **CodeRabbit AI** | PR 등록 시 변경 diff 자동 AI 코드 리뷰 | GitHub PR Webhook 연동 |
-| **GitHub Actions** | Push/PR 시 자동 빌드, 테스트, Step Summary 리포트 발행 | `.github/workflows/ci.yml` |
+1. **Redis-Free CAS (Compare-And-Swap) Atomic Preemption**:
+   - Zero Redis or ZooKeeper required. Coordinates distributed multi-node workers atomically using standard relational database transactions (UPDATE ha_excel_job SET status='RUNNING' WHERE status='PENDING').
+2. **Instant Push Dispatch + Virtual Threads**:
+   - Jobs are pushed into local in-memory worker queues instantaneously upon creation—eliminating periodic database polling query noise.
+   - Leverages Java Virtual Threads for lightweight, high-concurrency background streaming.
+3. **Dual Queue Strategy (Single XLSX vs. Chunked ZIP)**:
+   - Automatically diverts small/medium exports (< 100k rows) to **Normal Queue** (SXSSFWorkbook streaming).
+   - Diverts massive exports (100k ~ 2,000,000+ rows) to **Large Queue**, chunking data across multiple .xlsx workbooks and compressing into a single .zip on the fly.
+4. **Pluggable Multi-Storage Architecture (6 Providers)**:
+   - Seamlessly store and serve files across all cluster nodes using **Local Disk**, **Shared NAS (NFS/CIFS)**, **AWS S3 / MinIO**, **Naver Cloud Platform (NCP)**, **Azure Blob Storage**, or **Google Cloud Storage (GCS)**.
+5. **Crash & Orphan Recovery (Heartbeat Scanner)**:
+   - Server restarts automatically detect stale jobs on the restarting node and clean up dangling temporary files.
+   - Background orphan scanner reclaims orphaned jobs if an application node abruptly dies.
+6. **Safe Cooperative Cancellation Checkpoints**:
+   - Periodic row checkpoints (every 1,000 rows) check user cancellation requests, safely closing streams without Thread.interrupt() corruption.
 
 ---
 
-## 🔍 4. 원본 소스 및 이관 대상 (Source Reference)
+## 🏛️ Architecture Overview
 
-| 구분 | 내용 |
-| :--- | :--- |
-| **원본 저장소** | `wiezonSRC/REFECTOR_SOLPAY_SERVER` (Branch: `feature/feat-editRunTx_wypark_260708` 등 최신) |
-| **추출 대상 경로** | `src/main/java/com/wiezon/poompaytest/common/excel/` |
-| **핵심 컴포넌트** | • `ExcelJobManager`, `ExcelWorkerService`, `ExcelJobQueue`<br/>• `ExcelGeneratorService`, `ExcelZipGeneratorService`, `ExcelWriterUtils`<br/>• `template/` (`JxlsTemplateEngine`, `TemplateExcelEngine`)<br/>• `domain/` (`ExcelJob`, `ExcelJobStatus`, `ExcelColumnDef`, `ExcelRequest`)<br/>• `config/` (`ExcelProperties`, `ExcelJobQueueConfig`, `ExcelThreadPoolConfig`) |
-
----
-
-## 🛠 5. 이관 및 리팩토링 기준 (Refactoring & Sanitization Rules)
-
-새로운 세션에서 SOLPAY 거대 모듈로부터 엑셀 엔진을 독립 추출할 때 **반드시 준수해야 하는 기준**입니다.
-
-### ① 결제/PG 비즈니스 로직 완전 분리 (Sanitization & Decoupling)
-* **특정 비즈니스 도메인 제거**:
-  * 사내 PG/정산/가맹점 전용 DTO 및 로직을 모두 걷어내고, **Generic Row Mapper(`ExcelStreamable<T>`)** 인터페이스 기반으로 데이터 소스를 주입받도록 추상화.
-* **스토리지 추상화 (`StorageProvider`)**:
-  * 사내 전용 StorageService 의존성을 제거하고, 상기 6종 스토리지 구현체를 플러그형으로 지원.
-* **DB DDL 표준화**:
-  * 사내 테이블명(`TBEX_EXCEL_JOB`) 대신 `ha_excel_job` 표준 DDL 스크립트(`schema-mysql.sql`, `schema-h2.sql`, `schema-postgresql.sql`)를 프로젝트 내에 제공.
-
-### ② 패키지 및 프로젝트 네이밍 표준화
-* **Target Base Package**: `io.github.sweetpark.haexcel`
-  * Core Engine: `io.github.sweetpark.haexcel.core`
-  * Generator: `io.github.sweetpark.haexcel.generator`
-  * Storage Providers: `io.github.sweetpark.haexcel.storage.{local,nas,s3,ncp,azure,gcp}`
-  * AutoConfiguration: `io.github.sweetpark.haexcel.autoconfigure`
-
-### ③ 멀티 노드 데모 & 통합 테스트 환경 구성
-* `docker-compose.yml`을 통해:
-  * Nginx (LB) 1대 + Spring Boot 인스턴스 2대 + MariaDB 1대 + 로컬 MinIO/NAS 마운트
-  * Node 1이 다운되었을 때 Node 2가 작업을 인수하고 사용자가 어느 노드로 접근하든 정상 다운로드되는 시나리오 검증.
+`
+                                 [ Client / Web Browser ]
+                                            │
+                                            ▼
+                                  [ Nginx / API Gateway ]
+                                            │
+                   ┌────────────────────────┴────────────────────────┐
+                   ▼                                                 ▼
+          ┌─────────────────┐                               ┌─────────────────┐
+          │   App Node 1    │                               │   App Node 2    │
+          │ ┌─────────────┐ │                               │ ┌─────────────┐ │
+          │ │Push Queue(L)│ │                               │ │Push Queue(L)│ │
+          │ └──────┬──────┘ │                               │ └──────┬──────┘ │
+          │        ▼        │                               │        ▼        │
+          │ Virtual Threads │                               │ Virtual Threads │
+          └────────┬────────┘                               └────────┬────────┘
+                   │                                                 │
+                   │      CAS Atomic Claim (UPDATE ... WHERE)        │
+                   ├────────────────────────┬────────────────────────┤
+                   ▼                                                 ▼
+         ┌───────────────────┐                             ┌───────────────────┐
+         │ Relational DB     │                             │ Shared Storage    │
+         │ (ha_excel_job)    │                             │ (Local/NAS/S3/NCP)│
+         └───────────────────┘                             └───────────────────┘
+`
 
 ---
 
-## 📚 6. 오픈소스 필수 표준 6종 문서 구축 계획
+## 📦 Getting Started
 
-이관 시 다음 6종 문서를 생성합니다:
-1. `LICENSE` (Apache License 2.0)
-2. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
-3. `CONTRIBUTING.md` (기여 가이드, 브랜치 전략, 100% 커버리지 룰)
-4. `docs/ARCHITECTURE.md` (CAS 선점, Heartbeat 복구, 멀티 스토리지 아키텍처 다이어그램)
-5. `docs/CONVENTIONS.md` (Spotless, SpotBugs, Conventional Commits)
-6. `README.md` (공식 뱃지, 퀵스타트, Docker Compose 데모 가이드)
+### 1. Add Dependency
 
----
+#### Gradle (Kotlin/Groovy)
+`groovy
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
 
-## ⚙️ 7. GitHub 저장소 설정 (Repository Settings Checklist)
+dependencies {
+    implementation 'io.github.sweetpark:ha-excel-job-engine:1.0.0'
+}
+`
 
-* [ ] **Visibility**: `Settings` ➔ Danger Zone ➔ **`Make public`**
-* [ ] **PR 머지 시 브랜치 자동 삭제**: `Settings` ➔ `General` ➔ `Pull Requests` ➔ ✅ **`Automatically delete head branches`** 체크
-* [ ] **`main` 브랜치 보호 룰**: `Settings` ➔ `Branches` ➔ `Add branch protection rule` (`main`)
-  - ✅ `Require a pull request before merging` (Approvals: 1)
-  - ✅ `Require status checks to pass before merging` (Status check: `Test & 100% Coverage Verification`)
-  - ✅ `Require conversation resolution before merging`
-* [ ] **CodeRabbit AI 연동**: [CodeRabbit.ai](https://coderabbit.ai/)에서 저장소 연동 및 `Chill` 프로필 설정
-
----
-
-## 🗺 8. 단계별 로드맵 (Roadmap to Public Release)
-
-```mermaid
-graph LR
-    P1["Phase 1<br/>레포 초기화 & 설계"] --> P2["Phase 2<br/>모듈 추출 & 멀티 스토리지"]
-    P2 --> P3["Phase 3<br/>HA 검증 & Docker 데모"]
-    P3 --> P4["Phase 4<br/>Public 오픈소스 배포"]
-    style P1 fill:#238636,stroke:#fff,stroke-width:2px,color:#fff
-    style P2 fill:#1f6feb,stroke:#fff,stroke-width:2px,color:#fff
-    style P3 fill:#8957e5,stroke:#fff,stroke-width:2px,color:#fff
-    style P4 fill:#d29922,stroke:#fff,stroke-width:2px,color:#fff
-```
-
-### 📌 Phase 1: Private 레포 생성 및 청사진 수립 (✅ 완료)
-- [x] 오픈소스 지향 저장소(`ha-excel-job-engine`) 생성 (Private)
-- [x] 모듈 분리 설계, CAS HA 메커니즘, **플러그형 6종 스토리지 지원 설계** 및 품질 플레이북이 담긴 README 작성
-
-### 📌 Phase 2: 소스코드 추출 및 도메인 중립화 (Next Session)
-- [ ] `wiezonSRC/REFECTOR_SOLPAY_SERVER`의 `common/excel`을 Standalone Gradle 프로젝트로 추출
-- [ ] 패키지명 변경 (`io.github.sweetpark.haexcel`)
-- [ ] 사내 비즈니스 로직 제거 및 Generic 스트리밍 인터페이스로 재설계
-- [ ] **`StorageProvider` 인터페이스 및 6종(Local, NAS, S3, NCP, Azure, GCP) 구현체 작성**
-- [ ] 표준 `ha_excel_job` DDL 스크립트 작성 (MySQL, H2, PostgreSQL)
-- [ ] Spotless, SpotBugs, JaCoCo 100% 라인 커버리지 룰 구성
-
-### 📌 Phase 3: 동시성 & 대용량 OOM 검증 및 데모 구축
-- [ ] 다중 스레드 동시 Job 선점 CAS 원자성 단위 테스트
-- [ ] 100만 건 더미 데이터 기반 메모리 프로파일링(SXSSF 스트리밍 OOM 방지 검증)
-- [ ] 다중 노드 장애 복구(Heartbeat 고아 작업 인수) 시연용 `docker-compose` 환경 구성
-
-### 📌 Phase 4: Public 오픈소스 전환 및 배포
-- [ ] `LICENSE` (Apache 2.0), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `docs/` 추가
-- [ ] GitHub Actions CI (`.github/workflows/ci.yml`, `release.yml`) 및 PR 템플릿 추가
-- [ ] CodeRabbit AI 연동 및 Branch Protection 설정
-- [ ] **저장소 Public 전환 및 Maven Central 배포**
+#### Maven
+`xml
+<dependency>
+    <groupId>io.github.sweetpark</groupId>
+    <artifactId>ha-excel-job-engine</artifactId>
+    <version>1.0.0</version>
+</dependency>
+`
 
 ---
 
-## 📋 다음 세션 작업자를 위한 체크리스트 (Action Items for Next Session)
-1. `REFECTOR_SOLPAY_SERVER` 저장소의 `src/main/java/.../common/excel` 복사
-2. `ha-excel-job-engine` 프로젝트 구조(Gradle 멀티모듈 or 스타터)로 재구성
-3. `StorageProvider` 전략 패턴으로 6종 스토리지(Local, NAS, S3, NCP, Azure, GCP) 연동 모듈 구현
-4. Spotless, SpotBugs, JaCoCo 100% 라인 커버리지 연동 (`./gradlew check`)
-5. GitHub Actions CI (`.github/workflows/ci.yml`) 및 PR 템플릿 추가 후 PR 생성
+### 2. Database Schema Setup
+
+Execute the DDL script for your database:
+- MySQL / MariaDB: [schema-mysql.sql](src/main/resources/schema-mysql.sql)
+- PostgreSQL: [schema-postgresql.sql](src/main/resources/schema-postgresql.sql)
+- H2: [schema-h2.sql](src/main/resources/schema-h2.sql)
+
+---
+
+### 3. Configure pplication.yml
+
+`yaml
+ha-excel:
+  client-threshold: 10000        # Exports under 10k rows can be exported directly by client
+  worker-count: 4                # Virtual thread workers for single xlsx queue
+  large-worker-count: 2          # Virtual thread workers for chunked zip queue
+  zip-threshold: 100000          # Rows >= 100k automatically split into chunked ZIP
+  chunk-size: 50000              # Max rows per workbook in ZIP mode
+  job-ttl-minutes: 60            # Auto-delete generated files after 60 minutes
+  storage-type: S3               # LOCAL | NAS | S3 | NCP | AZURE | GCP
+  s3-bucket: my-excel-bucket
+  s3-region: ap-northeast-2
+  s3-endpoint: http://minio:9000 # Optional (for MinIO)
+`
+
+---
+
+### 4. Provide Data (Implement ExcelDataProvider)
+
+Implement ExcelDataProvider as a Spring Bean to supply data for a given izNm:
+
+`java
+@Component
+public class OrderListDataProvider implements ExcelDataProvider {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Override
+    public String getName() {
+        return "orderList"; // Matches /api/excel/orderList
+    }
+
+    @Override
+    public List<Map<String, Object>> fetchData(Map<String, Object> params) {
+        return orderRepository.findOrdersByParams(params);
+    }
+}
+`
+
+For ultra-large datasets with MyBatis Cursor streaming:
+`java
+@Component
+public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStreamable {
+
+    @Override
+    public String getName() {
+        return "streamingOrders";
+    }
+
+    @Override
+    public Cursor<Map<String, Object>> streamRows(Map<String, Object> params, SqlSession sqlSession) {
+        return sqlSession.selectCursor("com.example.OrderMapper.streamAll", params);
+    }
+}
+`
+
+---
+
+## 🌐 REST API Reference
+
+| Method | Endpoint | Description | Response Code |
+|---|---|---|:---:|
+| POST | /api/excel/{bizNm} | Submit asynchronous export job | 202 Accepted |
+| GET | /api/excel/{jobId}/status | Check job progress, percentage, and queue wait time | 200 OK |
+| GET | /api/excel/{jobId}/file | Download completed .xlsx or .zip file | 200 OK |
+| DELETE | /api/excel/{jobId}/cancel | Request cancellation of pending or running job | 200 OK |
+| GET | /api/excel/config | Retrieve client configuration (e.g., clientThreshold) | 200 OK |
+
+### Sample Request: POST /api/excel/orderList
+`json
+{
+  "fileName": "2026_Q3_Orders",
+  "totalCnt": 150000,
+  "params": {
+    "status": "PAID",
+    "startDate": "20260901"
+  },
+  "columns": [
+    { "field": "orderNo", "headerName": "Order Number", "width": 120 },
+    { "field": "customerName", "headerName": "Customer", "width": 100 },
+    { "field": "amount", "headerName": "Total (KRW)", "width": 110, "excelFormat": "krw" },
+    { "field": "orderedAt", "headerName": "Order Time", "width": 140, "excelFormat": "datetime" }
+  ]
+}
+`
+
+---
+
+## 🐳 Running the 2-Node Cluster Demo
+
+We provide a complete Docker Compose demonstration environment consisting of:
+- **Nginx** (Load Balancer on port 80)
+- **Node 1** (Spring Boot on port 8081)
+- **Node 2** (Spring Boot on port 8082)
+- **MariaDB** (Relational DB on port 3306)
+- **MinIO** (S3-compatible Object Storage on port 9000 / Console 9001)
+
+`ash
+docker-compose up --build -d
+`
+
+Test the cluster:
+`ash
+curl http://localhost/api/excel/config
+`
+
+---
+
+## 🛡️ Quality Gate & Verification
+
+`ash
+# Run tests, JaCoCo coverage, SpotBugs, and Spotless formatting check
+./gradlew check
+
+# Automatically reformat codebase to Google Java Format
+./gradlew spotlessApply
+`
+
+---
+
+## 📄 License
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.

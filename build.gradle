@@ -1,0 +1,142 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.2.1' apply false
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'com.github.spotbugs' version '6.0.14'
+}
+
+group = 'io.github.sweetpark'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-parameters'
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    springBootVersion = '3.2.1'
+    springVersion = '6.1.2'
+    slf4jVersion = '2.0.9'
+    jacksonVersion = '2.15.3'
+    poiVersion = '5.2.5'
+    jxlsVersion = '3.1.0'
+    mybatisSpringBootVersion = '3.0.3'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+    }
+}
+
+dependencies {
+    api "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+    api "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    api "org.springframework.boot:spring-boot-starter-jdbc:${springBootVersion}"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}"
+
+    api "org.apache.poi:poi:${poiVersion}"
+    api "org.apache.poi:poi-ooxml:${poiVersion}"
+    api "org.jxls:jxls:${jxlsVersion}"
+    api "org.jxls:jxls-poi:${jxlsVersion}"
+
+    api "org.mybatis.spring.boot:mybatis-spring-boot-starter:${mybatisSpringBootVersion}"
+
+    api "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    api "org.slf4j:slf4j-api:${slf4jVersion}"
+
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.3'
+
+    testImplementation "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+    testImplementation 'com.h2database:h2'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+spotless {
+    java {
+        googleJavaFormat('1.18.1').reflowLongStrings()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+spotbugs {
+    ignoreFailures = true
+    excludeFilter = file("${project.rootDir}/config/spotbugs/exclude.xml")
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'ha-excel-job-engine'
+                description = 'Redis-Free High-Availability Distributed Job & Large-Scale Excel Export Engine for Spring Boot'
+                url = 'https://github.com/sweetpark/ha-excel-job-engine'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'sweetpark'
+                        name = 'sweetpark'
+                        email = 'wooyeong1998@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/sweetpark/ha-excel-job-engine.git'
+                    developerConnection = 'scm:git:ssh://github.com:sweetpark/ha-excel-job-engine.git'
+                    url = 'https://github.com/sweetpark/ha-excel-job-engine'
+                }
+            }
+        }
+    }
+}

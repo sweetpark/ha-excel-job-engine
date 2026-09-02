@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    ha_excel_job MyBatis XML Mapper.
+
+    CAS Preemption Strategy:
+      1. selectOldestPending - Select candidate PENDING job without lock.
+      2. tryClaimJob         - Atomic UPDATE WHERE status='PENDING' (affected rows == 1 means success).
+-->
+<mapper namespace="io.github.sweetpark.haexcel.core.ExcelJobMapper">
+
+    <insert id="insert" parameterType="io.github.sweetpark.haexcel.core.domain.ExcelJob">
+        /* ExcelJobMapper.insert */
+        INSERT INTO ha_excel_job (
+              job_id
+            , biz_nm
+            , file_name
+            , worker
+            , server_id
+            , status
+            , processed_rows
+            , total_rows
+            , file_path
+            , params_json
+            , columns_json
+            , template_id
+            , error_msg
+            , cancel_yn
+            , created_at
+            , started_at
+            , completed_at
+        ) VALUES (
+              #{jobId,        jdbcType=VARCHAR}
+            , #{bizNm,        jdbcType=VARCHAR}
+            , #{fileName,     jdbcType=VARCHAR}
+            , #{worker,       jdbcType=VARCHAR}
+            , #{serverId,     jdbcType=VARCHAR}
+            , #{status,       jdbcType=VARCHAR}
+            , #{processedRows,jdbcType=INTEGER}
+            , #{totalRows,    jdbcType=INTEGER}
+            , #{filePath,     jdbcType=VARCHAR}
+            , #{paramsJson,   jdbcType=LONGVARCHAR}
+            , #{columnsJson,  jdbcType=LONGVARCHAR}
+            , #{templateId,   jdbcType=VARCHAR}
+            , #{errorMsg,     jdbcType=VARCHAR}
+            , #{cancelYn,     jdbcType=CHAR}
+            , #{createdAt,    jdbcType=BIGINT}
+            , #{startedAt,    jdbcType=BIGINT}
+            , #{completedAt,  jdbcType=BIGINT}
+        )
+    </insert>
+
+    <select id="selectByJobId" resultType="io.github.sweetpark.haexcel.core.domain.ExcelJob">
+        /* ExcelJobMapper.selectByJobId */
+        SELECT   j.job_id          AS jobId
+               , j.biz_nm          AS bizNm
+               , j.file_name       AS fileName
+               , j.worker          AS worker
+               , j.server_id       AS serverId
+               , j.status          AS status
+               , j.processed_rows  AS processedRows
+               , j.total_rows      AS totalRows
+               , j.file_path       AS filePath
+               , j.params_json     AS paramsJson
+               , j.columns_json    AS columnsJson
+               , j.template_id     AS templateId
+               , j.error_msg       AS errorMsg
+               , j.cancel_yn       AS cancelYn
+               , j.created_at      AS createdAt
+               , j.started_at      AS startedAt
+               , j.completed_at    AS completedAt
+          FROM   ha_excel_job j
+         WHERE   j.job_id = #{jobId, jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectOldestPending" resultType="io.github.sweetpark.haexcel.core.domain.ExcelJob">
+        /* ExcelJobMapper.selectOldestPending */
+        SELECT   j.job_id          AS jobId
+               , j.biz_nm          AS bizNm
+               , j.file_name       AS fileName
+               , j.worker          AS worker
+               , j.server_id       AS serverId
+               , j.status          AS status
+               , j.processed_rows  AS processedRows
+               , j.total_rows      AS totalRows
+               , j.file_path       AS filePath
+               , j.params_json     AS paramsJson
+               , j.columns_json    AS columnsJson
+               , j.template_id     AS templateId
+               , j.error_msg       AS errorMsg
+               , j.cancel_yn       AS cancelYn
+               , j.created_at      AS createdAt
+               , j.started_at      AS startedAt
+               , j.completed_at    AS completedAt
+          FROM   ha_excel_job j
+         WHERE   j.status = 'PENDING'
+         ORDER   BY j.created_at ASC
+         LIMIT   1
+    </select>
+
+    <select id="selectAllPendingJobs" resultType="io.github.sweetpark.haexcel.core.domain.ExcelJob">
+        /* ExcelJobMapper.selectAllPendingJobs */
+        SELECT   j.job_id          AS jobId
+               , j.biz_nm          AS bizNm
+               , j.file_name       AS fileName
+               , j.worker          AS worker
+               , j.server_id       AS serverId
+               , j.status          AS status
+               , j.processed_rows  AS processedRows
+               , j.total_rows      AS totalRows
+               , j.file_path       AS filePath
+               , j.params_json     AS paramsJson
+               , j.columns_json    AS columnsJson
+               , j.template_id     AS templateId
+               , j.error_msg       AS errorMsg
+               , j.cancel_yn       AS cancelYn
+               , j.created_at      AS createdAt
+               , j.started_at      AS startedAt
+               , j.completed_at    AS completedAt
+          FROM   ha_excel_job j
+         WHERE   j.status = 'PENDING'
+         ORDER   BY j.created_at ASC
+    </select>
+
+    <select id="selectOrphanedPendingJobs" resultType="io.github.sweetpark.haexcel.core.domain.ExcelJob">
+        /* ExcelJobMapper.selectOrphanedPendingJobs */
+        SELECT   j.job_id          AS jobId
+               , j.biz_nm          AS bizNm
+               , j.file_name       AS fileName
+               , j.worker          AS worker
+               , j.server_id       AS serverId
+               , j.status          AS status
+               , j.processed_rows  AS processedRows
+               , j.total_rows      AS totalRows
+               , j.file_path       AS filePath
+               , j.params_json     AS paramsJson
+               , j.columns_json    AS columnsJson
+               , j.template_id     AS templateId
+               , j.error_msg       AS errorMsg
+               , j.cancel_yn       AS cancelYn
+               , j.created_at      AS createdAt
+               , j.started_at      AS startedAt
+               , j.completed_at    AS completedAt
+          FROM   ha_excel_job j
+         WHERE   j.status = 'PENDING'
+           AND   j.created_at <![CDATA[ < ]]> #{cutoffMs, jdbcType=BIGINT}
+         ORDER   BY j.created_at ASC
+    </select>
+
+    <select id="selectActiveJobId" resultType="java.lang.String">
+        /* ExcelJobMapper.selectActiveJobId */
+        SELECT   j.job_id
+          FROM   ha_excel_job j
+         WHERE   j.worker       =    #{worker,      jdbcType=VARCHAR}
+           AND   j.biz_nm       =    #{bizNm,       jdbcType=VARCHAR}
+           AND   j.params_json  =    #{paramsJson,  jdbcType=LONGVARCHAR}
+           AND   j.columns_json =    #{columnsJson, jdbcType=LONGVARCHAR}
+           AND   (
+                     (j.template_id = #{templateId, jdbcType=VARCHAR})
+                     OR (j.template_id IS NULL AND #{templateId, jdbcType=VARCHAR} IS NULL)
+                 )
+           AND   j.status       = 'PENDING'
+           AND   j.created_at  <![CDATA[ >= ]]> #{cutoffMs, jdbcType=BIGINT}
+         ORDER   BY j.created_at DESC
+         LIMIT   1
+    </select>
+
+    <select id="selectStaleRunningJobIds" resultType="java.lang.String">
+        /* ExcelJobMapper.selectStaleRunningJobIds */
+        SELECT   j.job_id
+          FROM   ha_excel_job j
+         WHERE   j.status    = 'RUNNING'
+           AND   j.server_id = #{serverId, jdbcType=VARCHAR}
+    </select>
+
+    <select id="countPendingJobsBefore" resultType="int">
+        /* ExcelJobMapper.countPendingJobsBefore */
+        SELECT   COUNT(*)
+          FROM   ha_excel_job j
+         WHERE   j.status     = 'PENDING'
+           AND   j.created_at <![CDATA[ < ]]> #{createdAt, jdbcType=BIGINT}
+    </select>
+
+    <select id="selectExpiredFilePaths" resultType="java.lang.String">
+        /* ExcelJobMapper.selectExpiredFilePaths */
+        SELECT   j.file_path
+          FROM   ha_excel_job j
+         WHERE   j.status      IN ('DONE', 'FAIL')
+           AND   j.file_path   IS NOT NULL
+           AND   j.completed_at <![CDATA[ < ]]> #{cutoffMs, jdbcType=BIGINT}
+    </select>
+
+    <update id="tryClaimJob">
+        /* ExcelJobMapper.tryClaimJob */
+        UPDATE ha_excel_job
+           SET status     = 'RUNNING'
+             , server_id  = #{serverId,   jdbcType=VARCHAR}
+             , started_at = #{startedAt,  jdbcType=BIGINT}
+         WHERE job_id     = #{jobId,      jdbcType=VARCHAR}
+           AND status     = 'PENDING'
+    </update>
+
+    <update id="updateProgress">
+        /* ExcelJobMapper.updateProgress */
+        UPDATE ha_excel_job
+           SET processed_rows = #{processedRows, jdbcType=INTEGER}
+             , total_rows     = #{totalRows,     jdbcType=INTEGER}
+         WHERE job_id         = #{jobId,         jdbcType=VARCHAR}
+           AND status         = 'RUNNING'
+    </update>
+
+    <update id="updateDone">
+        /* ExcelJobMapper.updateDone */
+        UPDATE ha_excel_job
+           SET status       = 'DONE'
+             , file_path    = #{filePath,    jdbcType=VARCHAR}
+             , completed_at = #{completedAt, jdbcType=BIGINT}
+         WHERE job_id       = #{jobId,       jdbcType=VARCHAR}
+           AND status       = 'RUNNING'
+    </update>
+
+    <update id="updateFail">
+        /* ExcelJobMapper.updateFail */
+        UPDATE ha_excel_job
+           SET status       = 'FAIL'
+             , error_msg    = #{errorMsg,    jdbcType=VARCHAR}
+             , completed_at = #{completedAt, jdbcType=BIGINT}
+         WHERE job_id       = #{jobId,       jdbcType=VARCHAR}
+           AND status       = 'RUNNING'
+    </update>
+
+    <update id="failStaleRunningJobs">
+        /* ExcelJobMapper.failStaleRunningJobs */
+        UPDATE ha_excel_job
+           SET status       = 'FAIL'
+             , error_msg    = #{errorMsg,    jdbcType=VARCHAR}
+             , completed_at = #{completedAt, jdbcType=BIGINT}
+         WHERE status       = 'RUNNING'
+           AND server_id    = #{serverId,    jdbcType=VARCHAR}
+    </update>
+
+    <update id="clearExpiredFilePaths">
+        /* ExcelJobMapper.clearExpiredFilePaths */
+        UPDATE ha_excel_job
+           SET file_path  = NULL
+         WHERE status     IN ('DONE', 'FAIL')
+           AND file_path  IS NOT NULL
+           AND completed_at <![CDATA[ < ]]> #{cutoffMs, jdbcType=BIGINT}
+    </update>
+
+    <update id="cancelPendingJob">
+        /* ExcelJobMapper.cancelPendingJob */
+        UPDATE ha_excel_job
+           SET status       = 'FAIL'
+             , error_msg    = #{errorMsg,    jdbcType=VARCHAR}
+             , completed_at = #{completedAt, jdbcType=BIGINT}
+         WHERE job_id       = #{jobId,       jdbcType=VARCHAR}
+           AND status       = 'PENDING'
+    </update>
+
+    <update id="setCancelRequested">
+        /* ExcelJobMapper.setCancelRequested */
+        UPDATE ha_excel_job
+           SET cancel_yn = 'Y'
+         WHERE job_id    = #{jobId, jdbcType=VARCHAR}
+           AND status    = 'RUNNING'
+    </update>
+
+    <select id="selectCancelYn" resultType="java.lang.String">
+        /* ExcelJobMapper.selectCancelYn */
+        SELECT cancel_yn
+          FROM ha_excel_job
+         WHERE job_id = #{jobId, jdbcType=VARCHAR}
+    </select>
+
+</mapper>

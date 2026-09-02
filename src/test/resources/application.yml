@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ha_excel_db;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
+mybatis:
+  mapper-locations: classpath:mapper/haexcel/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+ha-excel:
+  client-threshold: 10000
+  job-ttl-minutes: 60
+  worker-count: 2
+  large-worker-count: 1
+  zip-threshold: 100000
+  chunk-size: 50000
+  storage-type: LOCAL
