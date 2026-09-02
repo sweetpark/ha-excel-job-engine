@@ -7,11 +7,11 @@
   <a href="https://github.com/sweetpark/ha-excel-job-engine/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License" />
   </a>
-  <img src="https://img.shields.io/badge/Java-17%20%7C%2021%2B-orange.svg?style=flat-square&logo=openjdk" alt="Java 17 / 21+" />
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg?style=flat-square&logo=springboot" alt="Spring Boot 3.x" />
-    <a href="https://jitpack.io/#sweetpark/ha-excel-job-engine">
+  <a href="https://jitpack.io/#sweetpark/ha-excel-job-engine">
     <img src="https://jitpack.io/v/sweetpark/ha-excel-job-engine.svg" alt="JitPack" />
   </a>
+  <img src="https://img.shields.io/badge/Java-17%20%7C%2021%2B-orange.svg?style=flat-square&logo=openjdk" alt="Java 17 / 21+" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg?style=flat-square&logo=springboot" alt="Spring Boot 3.x" />
   <img src="https://img.shields.io/badge/Coverage-100%25%20Verified-success.svg?style=flat-square" alt="Coverage" />
 </p>
 
@@ -25,7 +25,7 @@
 
 In large-scale enterprise systems, exporting massive datasets (hundreds of thousands to millions of rows) often triggers catastrophic failures:
 - **JVM Heap Exhaustion (OOM Crash)** from buffering large workbook models in memory.
-- **Heavy Infrastructure Dependency**: Complex setups requiring Redis distributed locks (Redisson), Celery, or RabbitMQ clusters just to coordinate background workers across multiple nodes.
+- **Heavy Infrastructure Dependency**: Complex setups requiring Redis distributed locks (`Redisson`), Celery, or RabbitMQ clusters just to coordinate background workers across multiple nodes.
 - **Serverless/Multi-Node Desynchronization**: A file generated on Node A cannot be downloaded by a user routed to Node B without sticky sessions or complex reverse proxies.
 - **Unsafe Thread Interruption**: Abruptly terminating long-running POI streams corrupts ZIP packaging and leaves dangling file descriptors.
 
@@ -36,23 +36,20 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 ## 🚀 Key Highlights
 
 1. **Redis-Free CAS (Compare-And-Swap) Atomic Preemption**:
-   - Zero Redis or ZooKeeper required. Coordinates distributed multi-node workers atomically using standard relational database transactions (UPDATE ha_excel_job SET status='RUNNING' WHERE status='PENDING').
+   - Zero Redis or ZooKeeper required. Coordinates distributed multi-node workers atomically using standard relational database transactions (`UPDATE ha_excel_job SET status='RUNNING' WHERE status='PENDING'`).
 2. **Instant Push Dispatch + Virtual Threads**:
    - Jobs are pushed into local in-memory worker queues instantaneously upon creation—eliminating periodic database polling query noise.
    - Leverages Java Virtual Threads for lightweight, high-concurrency background streaming.
 3. **Dual Queue Strategy (Single XLSX vs. Chunked ZIP)**:
-   - Automatically diverts small/medium exports (< 100k rows) to **Normal Queue** (SXSSFWorkbook streaming).
-   - Diverts massive exports (100k ~ 2,000,000+ rows) to **Large Queue**, chunking data across multiple .xlsx workbooks and compressing into a single .zip on the fly.
+   - Automatically diverts small/medium exports (< 100k rows) to **Normal Queue** (`SXSSFWorkbook` streaming).
+   - Diverts massive exports (100k ~ 2,000,000+ rows) to **Large Queue**, chunking data across multiple `.xlsx` workbooks and compressing into a single `.zip` on the fly.
 4. **Pluggable Multi-Storage Architecture (6 Providers)**:
    - Seamlessly store and serve files across all cluster nodes using **Local Disk**, **Shared NAS (NFS/CIFS)**, **AWS S3 / MinIO**, **Naver Cloud Platform (NCP)**, **Azure Blob Storage**, or **Google Cloud Storage (GCS)**.
 5. **Crash & Orphan Recovery (Heartbeat Scanner)**:
    - Server restarts automatically detect stale jobs on the restarting node and clean up dangling temporary files.
    - Background orphan scanner reclaims orphaned jobs if an application node abruptly dies.
 6. **Safe Cooperative Cancellation Checkpoints**:
-   - Periodic row checkpoints (every 1,000 rows) check user cancellation requests, safely closing streams without Thread.interrupt() corruption.
-
----
-
+   - Periodic row checkpoints (every 1,000 rows) check user cancellation requests, safely closing streams without `Thread.interrupt()` corruption.
 
 ---
 
@@ -68,9 +65,11 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 | 🚀 **[Automated Release Workflow](docs/RELEASE_WORKFLOW.md)** | Semantic versioning, GitHub Release automation, and JitPack build warm-up |
 | 🛡️ **[Branch Protection Rules](docs/BRANCH_PROTECTION.md)** | Main branch PR review rules, required CI status checks, and merge policy |
 
+---
+
 ## 🏛️ Architecture Overview
 
-`
+```text
                                  [ Client / Web Browser ]
                                             │
                                             ▼
@@ -94,7 +93,7 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
          │ Relational DB     │                             │ Shared Storage    │
          │ (ha_excel_job)    │                             │ (Local/NAS/S3/NCP)│
          └───────────────────┘                             └───────────────────┘
-`
+```
 
 ---
 
@@ -103,41 +102,50 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 ### 1. Add Dependency
 
 #### Gradle (Kotlin/Groovy)
-`groovy
+```groovy
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    // Replace with release tag (e.g. v1.0.0) or main-SNAPSHOT
-    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.0.0'
+    // Replace with latest release tag or main-SNAPSHOT
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
 }
-`
+```
 
-#### Maven
-`xml
-<dependency>
-    <groupId>io.github.sweetpark</groupId>
-    <artifactId>ha-excel-job-engine</artifactId>
-    <version>1.0.0</version>
-</dependency>
-`
+#### Maven (`pom.xml`)
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.sweetpark</groupId>
+        <artifactId>ha-excel-job-engine</artifactId>
+        <version>v1.1.1</version>
+    </dependency>
+</dependencies>
+```
 
 ---
 
 ### 2. Database Schema Setup
 
 Execute the DDL script for your database:
-- MySQL / MariaDB: [schema-mysql.sql](src/main/resources/schema-mysql.sql)
-- PostgreSQL: [schema-postgresql.sql](src/main/resources/schema-postgresql.sql)
-- H2: [schema-h2.sql](src/main/resources/schema-h2.sql)
+- MySQL / MariaDB: [`schema-mysql.sql`](src/main/resources/schema-mysql.sql)
+- PostgreSQL: [`schema-postgresql.sql`](src/main/resources/schema-postgresql.sql)
+- H2: [`schema-h2.sql`](src/main/resources/schema-h2.sql)
 
 ---
 
-### 3. Configure pplication.yml
+### 3. Configure `application.yml`
 
-`yaml
+```yaml
 ha-excel:
   client-threshold: 10000        # Exports under 10k rows can be exported directly by client
   worker-count: 4                # Virtual thread workers for single xlsx queue
@@ -149,15 +157,15 @@ ha-excel:
   s3-bucket: my-excel-bucket
   s3-region: ap-northeast-2
   s3-endpoint: http://minio:9000 # Optional (for MinIO)
-`
+```
 
 ---
 
-### 4. Provide Data (Implement ExcelDataProvider)
+### 4. Provide Data (Implement `ExcelDataProvider`)
 
-Implement ExcelDataProvider as a Spring Bean to supply data for a given izNm:
+Implement `ExcelDataProvider` as a Spring Bean to supply data for a given `bizNm`:
 
-`java
+```java
 @Component
 public class OrderListDataProvider implements ExcelDataProvider {
 
@@ -174,10 +182,10 @@ public class OrderListDataProvider implements ExcelDataProvider {
         return orderRepository.findOrdersByParams(params);
     }
 }
-`
+```
 
 For ultra-large datasets with MyBatis Cursor streaming:
-`java
+```java
 @Component
 public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStreamable {
 
@@ -191,7 +199,7 @@ public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStrea
         return sqlSession.selectCursor("com.example.OrderMapper.streamAll", params);
     }
 }
-`
+```
 
 ---
 
@@ -199,14 +207,14 @@ public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStrea
 
 | Method | Endpoint | Description | Response Code |
 |---|---|---|:---:|
-| POST | /api/excel/{bizNm} | Submit asynchronous export job | 202 Accepted |
-| GET | /api/excel/{jobId}/status | Check job progress, percentage, and queue wait time | 200 OK |
-| GET | /api/excel/{jobId}/file | Download completed .xlsx or .zip file | 200 OK |
-| DELETE | /api/excel/{jobId}/cancel | Request cancellation of pending or running job | 200 OK |
-| GET | /api/excel/config | Retrieve client configuration (e.g., clientThreshold) | 200 OK |
+| `POST` | `/api/excel/{bizNm}` | Submit asynchronous export job | `202 Accepted` |
+| `GET` | `/api/excel/{jobId}/status` | Check job progress, percentage, and queue wait time | `200 OK` |
+| `GET` | `/api/excel/{jobId}/file` | Download completed `.xlsx` or `.zip` file | `200 OK` |
+| `DELETE` | `/api/excel/{jobId}/cancel` | Request cancellation of pending or running job | `200 OK` |
+| `GET` | `/api/excel/config` | Retrieve client configuration (e.g., clientThreshold) | `200 OK` |
 
-### Sample Request: POST /api/excel/orderList
-`json
+### Sample Request: `POST /api/excel/orderList`
+```json
 {
   "fileName": "2026_Q3_Orders",
   "totalCnt": 150000,
@@ -221,10 +229,7 @@ public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStrea
     { "field": "orderedAt", "headerName": "Order Time", "width": 140, "excelFormat": "datetime" }
   ]
 }
-`
-
----
-
+```
 
 ---
 
@@ -241,6 +246,8 @@ npm install
 npm run dev
 ```
 
+---
+
 ## 🐳 Running the 2-Node Cluster Demo
 
 We provide a complete Docker Compose demonstration environment consisting of:
@@ -250,26 +257,35 @@ We provide a complete Docker Compose demonstration environment consisting of:
 - **MariaDB** (Relational DB on port 3306)
 - **MinIO** (S3-compatible Object Storage on port 9000 / Console 9001)
 
-`ash
+```bash
 docker-compose up --build -d
-`
+```
 
-Test the cluster:
-`ash
+Test the cluster through the load balancer:
+```bash
 curl http://localhost/api/excel/config
-`
+```
 
 ---
 
 ## 🛡️ Quality Gate & Verification
 
-`ash
+HA Excel Job Engine strictly enforces four quality gates on every commit and pull request:
+1. **Automated Testing**: 29 unit and integration tests including CAS concurrency preemption and crash recovery.
+2. **JaCoCo Coverage**: 100% verified test coverage threshold.
+3. **Spotless**: Google Java Format (`1.18.1`) code style enforcement.
+4. **SpotBugs**: Static code analysis with 0 high/medium bugs permitted.
+
+```bash
 # Run tests, JaCoCo coverage, SpotBugs, and Spotless formatting check
 ./gradlew check
 
 # Automatically reformat codebase to Google Java Format
 ./gradlew spotlessApply
-`
+
+# Generate Javadoc HTML documentation
+./gradlew javadoc
+```
 
 ---
 
