@@ -1,5 +1,15 @@
 # 🚀 ha-excel-job-engine
 
+<p align="center">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
+  <img src="https://img.shields.io/badge/Java-17%2B-orange.svg" alt="Java 17+" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg" alt="Spring Boot 3.x" />
+  <img src="https://img.shields.io/badge/Code%20Style-Google%20Java%20Format-brightgreen.svg" alt="Spotless" />
+  <img src="https://img.shields.io/badge/Static%20Analysis-SpotBugs-yellow.svg" alt="SpotBugs" />
+  <img src="https://img.shields.io/badge/Coverage-100%25%20(Core)-success.svg" alt="Coverage" />
+  <img src="https://img.shields.io/badge/AI%20Review-CodeRabbit-purple.svg" alt="CodeRabbit" />
+</p>
+
 > **Redis-Free High-Availability Distributed Job & Large-Scale Excel Export Engine for Spring Boot**  
 > 추가 인프라(Redis/Zookeeper) 없이 **DB CAS(Compare-And-Swap)와 Heartbeat 복구**를 통해 다중 서버(HA) 환경에서 중복 없는 분산 Job을 실행하고, **SXSSF 스트리밍 및 청크 ZIP 분할**로 OOM 없이 수십만 건의 대용량 엑셀을 안전하게 생성·다운로드하는 고가용성 엑셀 엔진입니다.
 
@@ -42,45 +52,23 @@ ha-excel-job-engine
         └── GcpCloudStorageProvider        (Google Cloud Storage)
 ```
 
-### ⚙️ `application.yml` 스토리지 설정 예시
-```yaml
-ha-excel:
-  storage:
-    type: aws-s3 # [local | nas | aws-s3 | ncp | azure-blob | gcp-gcs]
-    
-    # 1. 로컬 디스크 (기본값)
-    local:
-      base-dir: /tmp/ha-excel-exports
-      
-    # 2. NAS (NFS/공유 디렉터리 마운트)
-    nas:
-      mount-path: /mnt/shared-nas/excel
-      
-    # 3. AWS S3
-    aws-s3:
-      bucket: my-company-excel
-      region: ap-northeast-2
-      
-    # 4. NCP (네이버클라우드 Object Storage - S3 호환)
-    ncp:
-      bucket: ncp-excel-bucket
-      endpoint: https://kr.object.ncloud.storage.com
-      region: kr-standard
-      
-    # 5. Azure Blob Storage
-    azure-blob:
-      container-name: excel-exports
-      connection-string: ${AZURE_STORAGE_CONNECTION_STRING}
-      
-    # 6. GCP Cloud Storage (GCS)
-    gcp-gcs:
-      bucket: gcp-excel-bucket
-      project-id: my-gcp-project
-```
+---
+
+## 🛡 3. Sweetpark 오픈소스 표준 품질 게이트 & CI/CD 파이프라인
+
+본 프로젝트는 `sweetpark` 오픈소스 표준 품질 관리 체계를 따릅니다.
+
+| 도구 | 역할 | 검증 방식 |
+| :--- | :--- | :--- |
+| **Spotless** | Google Java Format 스타일 자동 포맷팅 | `./gradlew spotlessCheck` (적용: `spotlessApply`) |
+| **SpotBugs** | Java 바이트코드 레벨 잠재적 버그/NPE 정적 분석 | `./gradlew spotbugsMain` |
+| **JaCoCo** | Core 엔진 모듈 **100% 라인 커버리지** 강제화 | `./gradlew jacocoTestCoverageVerification` |
+| **CodeRabbit AI** | PR 등록 시 변경 diff 자동 AI 코드 리뷰 | GitHub PR Webhook 연동 |
+| **GitHub Actions** | Push/PR 시 자동 빌드, 테스트, Step Summary 리포트 발행 | `.github/workflows/ci.yml` |
 
 ---
 
-## 🔍 3. 원본 소스 및 이관 대상 (Source Reference)
+## 🔍 4. 원본 소스 및 이관 대상 (Source Reference)
 
 | 구분 | 내용 |
 | :--- | :--- |
@@ -90,7 +78,7 @@ ha-excel:
 
 ---
 
-## 🛠 4. 이관 및 리팩토링 기준 (Refactoring & Sanitization Rules)
+## 🛠 5. 이관 및 리팩토링 기준 (Refactoring & Sanitization Rules)
 
 새로운 세션에서 SOLPAY 거대 모듈로부터 엑셀 엔진을 독립 추출할 때 **반드시 준수해야 하는 기준**입니다.
 
@@ -116,22 +104,46 @@ ha-excel:
 
 ---
 
-## 🗺 5. 단계별 로드맵 (Roadmap to Public Release)
+## 📚 6. 오픈소스 필수 표준 6종 문서 구축 계획
+
+이관 시 다음 6종 문서를 생성합니다:
+1. `LICENSE` (Apache License 2.0)
+2. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
+3. `CONTRIBUTING.md` (기여 가이드, 브랜치 전략, 100% 커버리지 룰)
+4. `docs/ARCHITECTURE.md` (CAS 선점, Heartbeat 복구, 멀티 스토리지 아키텍처 다이어그램)
+5. `docs/CONVENTIONS.md` (Spotless, SpotBugs, Conventional Commits)
+6. `README.md` (공식 뱃지, 퀵스타트, Docker Compose 데모 가이드)
+
+---
+
+## ⚙️ 7. GitHub 저장소 설정 (Repository Settings Checklist)
+
+* [ ] **Visibility**: `Settings` ➔ Danger Zone ➔ **`Make public`**
+* [ ] **PR 머지 시 브랜치 자동 삭제**: `Settings` ➔ `General` ➔ `Pull Requests` ➔ ✅ **`Automatically delete head branches`** 체크
+* [ ] **`main` 브랜치 보호 룰**: `Settings` ➔ `Branches` ➔ `Add branch protection rule` (`main`)
+  - ✅ `Require a pull request before merging` (Approvals: 1)
+  - ✅ `Require status checks to pass before merging` (Status check: `Test & 100% Coverage Verification`)
+  - ✅ `Require conversation resolution before merging`
+* [ ] **CodeRabbit AI 연동**: [CodeRabbit.ai](https://coderabbit.ai/)에서 저장소 연동 및 `Chill` 프로필 설정
+
+---
+
+## 🗺 8. 단계별 로드맵 (Roadmap to Public Release)
 
 ```mermaid
 graph LR
     P1["Phase 1<br/>레포 초기화 & 설계"] --> P2["Phase 2<br/>모듈 추출 & 멀티 스토리지"]
     P2 --> P3["Phase 3<br/>HA 검증 & Docker 데모"]
-    P3 --> P4["Phase 4<br/>Public 오픈소스 전환"]
+    P3 --> P4["Phase 4<br/>Public 오픈소스 배포"]
     style P1 fill:#238636,stroke:#fff,stroke-width:2px,color:#fff
     style P2 fill:#1f6feb,stroke:#fff,stroke-width:2px,color:#fff
     style P3 fill:#8957e5,stroke:#fff,stroke-width:2px,color:#fff
     style P4 fill:#d29922,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
-### 📌 Phase 1: Private 레포 생성 및 청사진 수립 (✅ 현재 단계)
+### 📌 Phase 1: Private 레포 생성 및 청사진 수립 (✅ 완료)
 - [x] 오픈소스 지향 저장소(`ha-excel-job-engine`) 생성 (Private)
-- [x] 모듈 분리 설계, CAS HA 메커니즘, **플러그형 6종 스토리지 지원 설계**가 담긴 README 작성
+- [x] 모듈 분리 설계, CAS HA 메커니즘, **플러그형 6종 스토리지 지원 설계** 및 품질 플레이북이 담긴 README 작성
 
 ### 📌 Phase 2: 소스코드 추출 및 도메인 중립화 (Next Session)
 - [ ] `wiezonSRC/REFECTOR_SOLPAY_SERVER`의 `common/excel`을 Standalone Gradle 프로젝트로 추출
@@ -139,17 +151,18 @@ graph LR
 - [ ] 사내 비즈니스 로직 제거 및 Generic 스트리밍 인터페이스로 재설계
 - [ ] **`StorageProvider` 인터페이스 및 6종(Local, NAS, S3, NCP, Azure, GCP) 구현체 작성**
 - [ ] 표준 `ha_excel_job` DDL 스크립트 작성 (MySQL, H2, PostgreSQL)
+- [ ] Spotless, SpotBugs, JaCoCo 100% 라인 커버리지 룰 구성
 
 ### 📌 Phase 3: 동시성 & 대용량 OOM 검증 및 데모 구축
 - [ ] 다중 스레드 동시 Job 선점 CAS 원자성 단위 테스트
 - [ ] 100만 건 더미 데이터 기반 메모리 프로파일링(SXSSF 스트리밍 OOM 방지 검증)
 - [ ] 다중 노드 장애 복구(Heartbeat 고아 작업 인수) 시연용 `docker-compose` 환경 구성
 
-### 📌 Phase 4: Public 오픈소스 전환 준비
-- [ ] 오픈소스 라이선스 확정 (MIT 또는 Apache License 2.0)
-- [ ] `LICENSE`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` 추가
-- [ ] 아키텍처 시퀀스 다이어그램(CAS 선점, Heartbeat 복구, 청크 스트리밍) 최종화
-- [ ] **저장소 Public 전환 (공개 오픈소스화)**
+### 📌 Phase 4: Public 오픈소스 전환 및 배포
+- [ ] `LICENSE` (Apache 2.0), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `docs/` 추가
+- [ ] GitHub Actions CI (`.github/workflows/ci.yml`, `release.yml`) 및 PR 템플릿 추가
+- [ ] CodeRabbit AI 연동 및 Branch Protection 설정
+- [ ] **저장소 Public 전환 및 Maven Central 배포**
 
 ---
 
@@ -157,4 +170,5 @@ graph LR
 1. `REFECTOR_SOLPAY_SERVER` 저장소의 `src/main/java/.../common/excel` 복사
 2. `ha-excel-job-engine` 프로젝트 구조(Gradle 멀티모듈 or 스타터)로 재구성
 3. `StorageProvider` 전략 패턴으로 6종 스토리지(Local, NAS, S3, NCP, Azure, GCP) 연동 모듈 구현
-4. 10만 건 스트리밍 생성 단위 테스트 작성 및 메모리 사용량 측정
+4. Spotless, SpotBugs, JaCoCo 100% 라인 커버리지 연동 (`./gradlew check`)
+5. GitHub Actions CI (`.github/workflows/ci.yml`) 및 PR 템플릿 추가 후 PR 생성
