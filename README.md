@@ -101,7 +101,12 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 
 ### 1. Add Dependency
 
-#### Gradle (Kotlin/Groovy)
+- 🌐 **JitPack Repository**: [https://jitpack.io/#sweetpark/ha-excel-job-engine](https://jitpack.io/#sweetpark/ha-excel-job-engine)
+- 📌 **GroupId**: `com.github.sweetpark`
+- 📌 **ArtifactId**: `ha-excel-job-engine`
+- 📌 **Latest Release**: `v1.1.1` (or `main-SNAPSHOT`)
+
+#### Gradle (Groovy)
 ```groovy
 repositories {
     mavenCentral()
@@ -109,8 +114,19 @@ repositories {
 }
 
 dependencies {
-    // Replace with latest release tag or main-SNAPSHOT
     implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
+}
+```
+
+#### Gradle (Kotlin DSL)
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.sweetpark:ha-excel-job-engine:v1.1.1")
 }
 ```
 
