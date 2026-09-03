@@ -80,10 +80,14 @@ class CloudStorageProvidersTest {
     // fake-gcs-server's resumable upload protocol replies to the "start session" call with an
     // absolute Location URL that the client then PUTs the bytes to - it must be reachable from
     // this JVM, so unlike MinIO/Azurite (single-request PUT, any mapped port works) this needs a
-    // host port known before the container starts, advertised back via -public-host.
+    // host port known before the container starts, advertised back via -external-url (NOT
+    // -public-host, which only affects signed-URL host matching, not the resumable Location
+    // header - without it the server echoes its own 0.0.0.0 bind address into Location and every
+    // chunk upload fails with a ConnectException).
     fakeGcs =
         new GenericContainer<>(DockerImageName.parse("fsouza/fake-gcs-server:1.49.2"))
-            .withCommand("-scheme", "http", "-public-host", "localhost:" + FAKE_GCS_HOST_PORT)
+            .withCommand(
+                "-scheme", "http", "-external-url", "http://localhost:" + FAKE_GCS_HOST_PORT)
             .withExposedPorts(4443)
             .withCreateContainerCmdModifier(
                 cmd ->
