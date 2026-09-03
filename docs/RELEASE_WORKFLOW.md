@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.0.0'
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
 }
 ```
 
@@ -58,7 +58,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.sweetpark:ha-excel-job-engine:v1.0.0")
+    implementation("com.github.sweetpark:ha-excel-job-engine:v1.1.1")
 }
 ```
 
@@ -75,7 +75,7 @@ dependencies {
     <dependency>
         <groupId>com.github.sweetpark</groupId>
         <artifactId>ha-excel-job-engine</artifactId>
-        <version>v1.0.0</version>
+        <version>v1.1.1</version>
     </dependency>
 </dependencies>
 ```
