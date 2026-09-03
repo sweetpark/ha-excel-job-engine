@@ -300,7 +300,7 @@ Two example modules, meant to be run together:
 - [`examples/sample-server`](examples/sample-server) - a complete, runnable **Spring Boot backend**
   (H2 in-memory DB + a dummy `ExcelDataProvider`) wiring up this library end to end. Clone and
   `./gradlew bootRun`, no other setup needed.
-- [`examples/client-react`](examples/client-react) - a production-ready **React + TypeScript**
+- [`examples/sample-client`](examples/sample-client) - a production-ready **React + TypeScript**
   frontend:
   - **`useExcelExport` Hook**: Asynchronous export submission, status polling, progress bar %, and auto-download.
   - **`ExcelExportButton` Component**: Export button with floating progress modal and cancel button.
@@ -312,7 +312,7 @@ cd examples/sample-server
 ./gradlew bootRun
 
 # terminal 2
-cd examples/client-react
+cd examples/sample-client
 npm install
 npm run dev
 ```

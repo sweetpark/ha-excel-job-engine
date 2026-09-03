@@ -4,7 +4,7 @@ A minimal, runnable Spring Boot backend wiring up **ha-excel-job-engine** end to
 in-memory database, a dummy `ExcelDataProvider`, and the library's own REST controller. Clone
 this folder and run it - no other setup required.
 
-It pairs with [`examples/client-react`](../client-react) (same `bizNm`, same column names), but
+It pairs with [`examples/sample-client`](../sample-client) (same `bizNm`, same column names), but
 also works standalone via `curl`.
 
 ---
@@ -41,11 +41,11 @@ curl -OJ http://localhost:8080/api/excel/<jobId>/file
 cd examples/sample-server && ./gradlew bootRun
 
 # terminal 2
-cd examples/client-react && npm install && npm run dev
+cd examples/sample-client && npm install && npm run dev
 ```
 
 Open `http://localhost:3000` - the button submits a real export against this server (Vite proxies
-`/api/*` to `http://localhost:8080`, see `examples/client-react/vite.config.ts`).
+`/api/*` to `http://localhost:8080`, see `examples/sample-client/vite.config.ts`).
 
 ---
 
