@@ -9,7 +9,7 @@ plugins {
 }
 
 group = 'io.github.sweetpark'
-version = '1.0.0'
+version = '1.1.1'
 
 java {
     toolchain {
@@ -45,25 +45,39 @@ ext {
     poiVersion = '5.2.5'
     jxlsVersion = '3.1.0'
     mybatisSpringBootVersion = '3.0.3'
+    awsSdkVersion = '2.25.60'
+    azureStorageBlobVersion = '12.25.3'
+    gcpStorageVersion = '2.36.1'
+    testcontainersVersion = '1.19.7'
 }
 
 dependencyManagement {
     imports {
         mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+        mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
     }
 }
 
 dependencies {
     api "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
-    api "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
-    api "org.springframework.boot:spring-boot-starter-jdbc:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-jdbc:${springBootVersion}"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor:${springBootVersion}"
 
+    // POI is intentionally `api`: the public ExcelWriterUtils exposes POI types
+    // (Sheet/Workbook/Cell/CellStyle) directly in its method signatures, so any
+    // consumer calling those utilities needs POI on their own compile classpath.
     api "org.apache.poi:poi:${poiVersion}"
     api "org.apache.poi:poi-ooxml:${poiVersion}"
-    api "org.jxls:jxls:${jxlsVersion}"
-    api "org.jxls:jxls-poi:${jxlsVersion}"
+    // jxls is purely an internal implementation detail of JxlsTemplateEngine; the
+    // public TemplateExcelEngine SPI only deals in InputStream/OutputStream, so it
+    // does not need to be exposed to consumers.
+    implementation "org.jxls:jxls:${jxlsVersion}"
+    implementation "org.jxls:jxls-poi:${jxlsVersion}"
 
+    // MyBatis is intentionally `api`: the public ExcelStreamable SPI takes a
+    // Cursor/SqlSession in its method signature, so implementors need MyBatis on
+    // their own compile classpath.
     api "org.mybatis.spring.boot:mybatis-spring-boot-starter:${mybatisSpringBootVersion}"
 
     api "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
@@ -71,8 +85,20 @@ dependencies {
 
     compileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.3'
 
+    // Optional cloud storage backends. Consumers who select storage-type: S3, NCP,
+    // AZURE, or GCP must add the matching SDK themselves (see README) - the starter
+    // stays dependency-free for LOCAL/NAS users.
+    compileOnly "software.amazon.awssdk:s3:${awsSdkVersion}"
+    compileOnly "com.azure:azure-storage-blob:${azureStorageBlobVersion}"
+    compileOnly "com.google.cloud:google-cloud-storage:${gcpStorageVersion}"
+
     testImplementation "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
     testImplementation 'com.h2database:h2'
+    testImplementation "software.amazon.awssdk:s3:${awsSdkVersion}"
+    testImplementation "com.azure:azure-storage-blob:${azureStorageBlobVersion}"
+    testImplementation "com.google.cloud:google-cloud-storage:${gcpStorageVersion}"
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
 }
 
 tasks.withType(Test).configureEach {

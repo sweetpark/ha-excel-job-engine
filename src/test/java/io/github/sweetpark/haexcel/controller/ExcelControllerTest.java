@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -40,7 +41,15 @@ class ExcelControllerTest {
 
     ExcelController controller =
         new ExcelController(jobManager, templateService, props, new DefaultExcelSecurityProvider());
-    mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    // Pin the JSON converter explicitly: standaloneSetup() otherwise auto-detects converters
+    // purely from what's on the classpath, and also registers an XML converter as soon as
+    // jackson-dataformat-xml is present (pulled in transitively by the Azure Blob SDK test
+    // dependency) - without an explicit Accept header that could win content negotiation and
+    // serialize responses as XML instead of JSON.
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(controller)
+            .setMessageConverters(new MappingJackson2HttpMessageConverter())
+            .build();
   }
 
   @Test

@@ -2,12 +2,8 @@ package io.github.sweetpark.haexcel.storage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.sweetpark.haexcel.storage.azure.AzureBlobStorageProvider;
-import io.github.sweetpark.haexcel.storage.gcp.GcpCloudStorageProvider;
 import io.github.sweetpark.haexcel.storage.local.LocalDiskStorageProvider;
 import io.github.sweetpark.haexcel.storage.nas.NasStorageProvider;
-import io.github.sweetpark.haexcel.storage.ncp.NcpObjectStorageProvider;
-import io.github.sweetpark.haexcel.storage.s3.AwsS3StorageProvider;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
@@ -66,56 +62,9 @@ class StorageProvidersTest {
     assertNull(provider.getResource("nas-sample.xlsx"));
   }
 
-  @Test
-  @DisplayName("Cloud storage providers (S3, NCP, Azure, GCP) store and retrieve properly")
-  void testCloudStorageProviders() throws Exception {
-    Path sample = tempDir.resolve("cloud-sample.xlsx");
-    Files.writeString(sample, "cloud test data");
-
-    // AWS S3
-    AwsS3StorageProvider s3 = new AwsS3StorageProvider("test-bucket", "ap-northeast-2");
-    assertEquals(StorageType.S3, s3.getType());
-    s3.storeFile(
-        sample,
-        "s3-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(s3.getResource("s3-test.xlsx"));
-    s3.delete("s3-test.xlsx");
-    assertNull(s3.getResource("s3-test.xlsx"));
-
-    // NCP Object Storage
-    NcpObjectStorageProvider ncp = new NcpObjectStorageProvider("ncp-bucket", "kr");
-    assertEquals(StorageType.NCP, ncp.getType());
-    ncp.storeFile(
-        sample,
-        "ncp-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(ncp.getResource("ncp-test.xlsx"));
-    ncp.delete("ncp-test.xlsx");
-    assertNull(ncp.getResource("ncp-test.xlsx"));
-
-    // Azure Blob Storage
-    AzureBlobStorageProvider azure = new AzureBlobStorageProvider("azure-cont", "fake-conn");
-    assertEquals(StorageType.AZURE, azure.getType());
-    azure.storeFile(
-        sample,
-        "azure-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(azure.getResource("azure-test.xlsx"));
-    azure.delete("azure-test.xlsx");
-    assertNull(azure.getResource("azure-test.xlsx"));
-
-    // GCP Cloud Storage
-    GcpCloudStorageProvider gcp = new GcpCloudStorageProvider("gcp-bucket", "proj-123");
-    assertEquals(StorageType.GCP, gcp.getType());
-    gcp.storeFile(
-        sample,
-        "gcp-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(gcp.getResource("gcp-test.xlsx"));
-    gcp.delete("gcp-test.xlsx");
-    assertNull(gcp.getResource("gcp-test.xlsx"));
-  }
+  // Cloud storage providers (S3, NCP, Azure, GCP) are covered by CloudStorageProvidersTest,
+  // which exercises the real SDK calls against Testcontainers-backed emulators (MinIO / Azurite /
+  // fake-gcs-server) instead of asserting against an in-memory mock.
 
   @Test
   @DisplayName("StorageService facade delegates correctly to active provider")

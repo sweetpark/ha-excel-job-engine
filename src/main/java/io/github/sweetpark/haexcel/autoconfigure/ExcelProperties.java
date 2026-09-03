@@ -51,9 +51,16 @@ public class ExcelProperties {
   private String s3Bucket = "excel-export-bucket";
   private String s3Region = "ap-northeast-2";
   private String s3Endpoint = "";
+
+  /** Optional static AWS credentials. If blank, falls back to the AWS default credential chain. */
+  private String s3AccessKey = "";
+
+  private String s3SecretKey = "";
   private String ncpBucket = "ncp-excel-bucket";
   private String ncpRegion = "kr";
   private String ncpEndpoint = "https://kr.object.ncloudstorage.com";
+  private String ncpAccessKey = "";
+  private String ncpSecretKey = "";
   private String azureContainer = "excel-container";
   private String azureConnectionString = "";
   private String gcpBucket = "gcp-excel-bucket";
@@ -207,12 +214,44 @@ public class ExcelProperties {
     this.s3Endpoint = s3Endpoint;
   }
 
+  public String getS3AccessKey() {
+    return s3AccessKey;
+  }
+
+  public void setS3AccessKey(String s3AccessKey) {
+    this.s3AccessKey = s3AccessKey;
+  }
+
+  public String getS3SecretKey() {
+    return s3SecretKey;
+  }
+
+  public void setS3SecretKey(String s3SecretKey) {
+    this.s3SecretKey = s3SecretKey;
+  }
+
   public String getNcpBucket() {
     return ncpBucket;
   }
 
   public void setNcpBucket(String ncpBucket) {
     this.ncpBucket = ncpBucket;
+  }
+
+  public String getNcpAccessKey() {
+    return ncpAccessKey;
+  }
+
+  public void setNcpAccessKey(String ncpAccessKey) {
+    this.ncpAccessKey = ncpAccessKey;
+  }
+
+  public String getNcpSecretKey() {
+    return ncpSecretKey;
+  }
+
+  public void setNcpSecretKey(String ncpSecretKey) {
+    this.ncpSecretKey = ncpSecretKey;
   }
 
   public String getNcpRegion() {
