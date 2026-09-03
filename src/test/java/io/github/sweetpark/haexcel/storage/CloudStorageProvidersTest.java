@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -43,6 +46,9 @@ class CloudStorageProvidersTest {
   private static final String AZURITE_ACCOUNT_NAME = "devstoreaccount1";
   private static final String AZURITE_ACCOUNT_KEY =
       "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
+  // Fixed (not dynamically mapped) so it can be baked into fake-gcs-server's -public-host flag
+  // before the container starts. Arbitrary high port, unlikely to collide within a single CI job.
+  private static final int FAKE_GCS_HOST_PORT = 44313;
 
   private static GenericContainer<?> minio;
   private static GenericContainer<?> azurite;
@@ -71,10 +77,20 @@ class CloudStorageProvidersTest {
             .waitingFor(Wait.forListeningPort());
     azurite.start();
 
+    // fake-gcs-server's resumable upload protocol replies to the "start session" call with an
+    // absolute Location URL that the client then PUTs the bytes to - it must be reachable from
+    // this JVM, so unlike MinIO/Azurite (single-request PUT, any mapped port works) this needs a
+    // host port known before the container starts, advertised back via -public-host.
     fakeGcs =
         new GenericContainer<>(DockerImageName.parse("fsouza/fake-gcs-server:1.49.2"))
-            .withCommand("-scheme", "http")
+            .withCommand("-scheme", "http", "-public-host", "localhost:" + FAKE_GCS_HOST_PORT)
             .withExposedPorts(4443)
+            .withCreateContainerCmdModifier(
+                cmd ->
+                    cmd.getHostConfig()
+                        .withPortBindings(
+                            new PortBinding(
+                                Ports.Binding.bindPort(FAKE_GCS_HOST_PORT), new ExposedPort(4443))))
             .waitingFor(Wait.forListeningPort());
     fakeGcs.start();
     Storage gcsAdmin =
@@ -105,7 +121,7 @@ class CloudStorageProvidersTest {
   }
 
   private static String gcsEndpoint() {
-    return "http://" + fakeGcs.getHost() + ":" + fakeGcs.getMappedPort(4443);
+    return "http://localhost:" + FAKE_GCS_HOST_PORT;
   }
 
   private static void createS3Bucket(String endpoint, String bucket) {
