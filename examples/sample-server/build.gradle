@@ -21,7 +21,7 @@ repositories {
 dependencies {
     // The published starter, exactly as documented in the root README's "Add Dependency"
     // section - clone this folder and run it, no local build of the parent project required.
-    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.2'
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     runtimeOnly 'com.h2database:h2'

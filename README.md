@@ -105,7 +105,7 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
 - 🌐 **JitPack Repository**: [https://jitpack.io/#sweetpark/ha-excel-job-engine](https://jitpack.io/#sweetpark/ha-excel-job-engine)
 - 📌 **GroupId**: `com.github.sweetpark`
 - 📌 **ArtifactId**: `ha-excel-job-engine`
-- 📌 **Latest Release**: `v1.1.1` (or `main-SNAPSHOT`)
+- 📌 **Latest Release**: `v1.1.2` (or `main-SNAPSHOT`)
 
 #### Gradle (Groovy)
 ```groovy
@@ -115,7 +115,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.2'
 }
 ```
 
@@ -127,7 +127,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.sweetpark:ha-excel-job-engine:v1.1.1")
+    implementation("com.github.sweetpark:ha-excel-job-engine:v1.1.2")
 }
 ```
 
@@ -144,7 +144,7 @@ dependencies {
     <dependency>
         <groupId>com.github.sweetpark</groupId>
         <artifactId>ha-excel-job-engine</artifactId>
-        <version>v1.1.1</version>
+        <version>v1.1.2</version>
     </dependency>
 </dependencies>
 ```
