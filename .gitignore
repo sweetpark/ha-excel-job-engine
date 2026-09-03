@@ -45,3 +45,6 @@ node_modules/
 dist/
 .vite/
 *.log
+
+### Sample server runtime output ###
+examples/sample-server/sample-server-storage/

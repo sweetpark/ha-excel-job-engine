@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'io.github.sweetpark.sample'
+version = '0.0.1'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // The published starter, exactly as documented in the root README's "Add Dependency"
+    // section - clone this folder and run it, no local build of the parent project required.
+    implementation 'com.github.sweetpark:ha-excel-job-engine:v1.1.1'
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    runtimeOnly 'com.h2database:h2'
+    // Needed when this image is pointed at the MariaDB service in the repo's docker-compose demo
+    // (see docker-compose.yml); the default `./gradlew bootRun` still uses the H2 config above.
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}

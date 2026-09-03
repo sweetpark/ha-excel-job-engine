@@ -1,28 +1,40 @@
 package io.github.sweetpark.haexcel.storage.azure;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.models.BlobStorageException;
 import io.github.sweetpark.haexcel.storage.StorageProvider;
 import io.github.sweetpark.haexcel.storage.StorageResource;
 import io.github.sweetpark.haexcel.storage.StorageType;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 
-/** Microsoft Azure Blob Storage provider. */
+/**
+ * Microsoft Azure Blob Storage provider. Uploads stream directly from disk via {@code
+ * uploadFromFile} and downloads open a lazy blob input stream - the file is never fully
+ * materialized in the JVM heap.
+ */
 public class AzureBlobStorageProvider implements StorageProvider {
 
   private static final Logger log = LoggerFactory.getLogger(AzureBlobStorageProvider.class);
 
   private final String containerName;
-  private final String connectionString;
-  private final ConcurrentHashMap<String, byte[]> blobStore = new ConcurrentHashMap<>();
+  private final BlobContainerClient containerClient;
 
   public AzureBlobStorageProvider(String containerName, String connectionString) {
     this.containerName = containerName;
-    this.connectionString = connectionString;
+    BlobServiceClient serviceClient =
+        new BlobServiceClientBuilder().connectionString(connectionString).buildClient();
+    this.containerClient = serviceClient.getBlobContainerClient(containerName);
+    if (!containerClient.exists()) {
+      containerClient.create();
+    }
     log.info("[AzureBlobStorage] Initialized container={}", containerName);
   }
 
@@ -33,32 +45,39 @@ public class AzureBlobStorageProvider implements StorageProvider {
 
   @Override
   public String storeFile(Path source, String key, String contentType) throws IOException {
-    byte[] data = Files.readAllBytes(source);
-    blobStore.put(key, data);
-    log.info(
-        "[AzureBlobStorage] Stored blob: container={} key={} size={}",
-        containerName,
-        key,
-        data.length);
+    BlobClient blobClient = containerClient.getBlobClient(key);
+    blobClient.uploadFromFile(source.toString(), true);
+    if (contentType != null) {
+      blobClient.setHttpHeaders(new BlobHttpHeaders().setContentType(contentType));
+    }
+    log.info("[AzureBlobStorage] Stored blob: container={} key={}", containerName, key);
     return key;
   }
 
   @Override
   public StorageResource getResource(String key) throws IOException {
-    byte[] data = blobStore.get(key);
-    if (data == null) {
+    BlobClient blobClient = containerClient.getBlobClient(key);
+    if (!blobClient.exists()) {
       return null;
     }
-    String contentType =
-        key.endsWith(".zip")
-            ? "application/zip"
-            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    return new StorageResource(new ByteArrayResource(data), key, contentType, data.length);
+    try {
+      var properties = blobClient.getProperties();
+      return new StorageResource(
+          new InputStreamResource(blobClient.openInputStream()),
+          key,
+          properties.getContentType(),
+          properties.getBlobSize());
+    } catch (BlobStorageException e) {
+      if (e.getStatusCode() == 404) {
+        return null;
+      }
+      throw e;
+    }
   }
 
   @Override
   public void delete(String key) throws IOException {
-    blobStore.remove(key);
+    containerClient.getBlobClient(key).deleteIfExists();
     log.info("[AzureBlobStorage] Deleted blob: key={}", key);
   }
 

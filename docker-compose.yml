@@ -39,41 +39,63 @@ services:
     volumes:
       - minio_data:/data
 
+  # MinIO does not auto-create buckets. Without this, node-1/node-2 would fail on first
+  # upload since the real S3 client (unlike the old in-memory mock) actually enforces that the
+  # bucket exists.
+  minio-init:
+    image: minio/mc:RELEASE.2024-01-13T08-44-48Z
+    container_name: ha-excel-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+        mc mb --ignore-existing local/excel-exports;
+      "
+
   node-1:
-    build: .
+    build: ./examples/sample-server
     container_name: ha-excel-node-1
     environment:
       SERVER_PORT: 8081
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/ha_excel_db
       SPRING_DATASOURCE_USERNAME: hauser
       SPRING_DATASOURCE_PASSWORD: hapassword
+      # Schema is already applied by MariaDB's own docker-entrypoint-initdb.d (schema-mysql.sql
+      # above) - skip the app's own H2-flavored schema-init on startup.
+      SPRING_SQL_INIT_MODE: never
       HA_EXCEL_SERVER_ID: node-1
       HA_EXCEL_STORAGE_TYPE: S3
       HA_EXCEL_S3_ENDPOINT: http://minio:9000
       HA_EXCEL_S3_BUCKET: excel-exports
+      HA_EXCEL_S3_ACCESS_KEY: minioadmin
+      HA_EXCEL_S3_SECRET_KEY: minioadmin
     ports:
       - "8081:8081"
     depends_on:
       - mariadb
-      - minio
+      - minio-init
 
   node-2:
-    build: .
+    build: ./examples/sample-server
     container_name: ha-excel-node-2
     environment:
       SERVER_PORT: 8082
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/ha_excel_db
       SPRING_DATASOURCE_USERNAME: hauser
       SPRING_DATASOURCE_PASSWORD: hapassword
+      SPRING_SQL_INIT_MODE: never
       HA_EXCEL_SERVER_ID: node-2
       HA_EXCEL_STORAGE_TYPE: S3
       HA_EXCEL_S3_ENDPOINT: http://minio:9000
       HA_EXCEL_S3_BUCKET: excel-exports
+      HA_EXCEL_S3_ACCESS_KEY: minioadmin
+      HA_EXCEL_S3_SECRET_KEY: minioadmin
     ports:
       - "8082:8082"
     depends_on:
       - mariadb
-      - minio
+      - minio-init
 
 volumes:
   mariadb_data:

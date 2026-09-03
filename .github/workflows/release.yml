@@ -67,5 +67,24 @@ jobs:
       - name: Trigger JitPack Build Warm-up
         if: steps.tag_version.outputs.new_tag
         run: |
-          echo "Triggering JitPack build for ${{ steps.tag_version.outputs.new_tag }}..."
-          curl -s -X GET "https://jitpack.io/api/builds/sweetpark/ha-excel-job-engine/${{ steps.tag_version.outputs.new_tag }}" || true
+          TAG="${{ steps.tag_version.outputs.new_tag }}"
+          echo "Triggering JitPack build for ${TAG}..."
+          # `/api/builds/:groupId/:artifactId/:version` only reports build STATUS, it does not
+          # start one - the old warm-up call hit that read-only endpoint with the wrong groupId
+          # format on top (raw "sweetpark/ha-excel-job-engine" instead of the dotted
+          # "com.github.sweetpark" JitPack expects), so it silently did nothing.
+          # A build is actually triggered by requesting a real artifact coordinate (e.g. the POM).
+          POM_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "https://jitpack.io/com/github/sweetpark/ha-excel-job-engine/${TAG}/ha-excel-job-engine-${TAG}.pom")
+          echo "POM fetch (build trigger) HTTP status: ${POM_STATUS}"
+
+          echo "Waiting for JitPack build to finish..."
+          for i in $(seq 1 10); do
+            sleep 15
+            RESPONSE=$(curl -sS "https://jitpack.io/api/builds/com.github.sweetpark/ha-excel-job-engine/${TAG}")
+            echo "${RESPONSE}"
+            if echo "${RESPONSE}" | grep -q '"isTag" *: *true'; then
+              echo "JitPack has resolved ${TAG} as a real tag - build is available (or in progress)."
+              break
+            fi
+          done

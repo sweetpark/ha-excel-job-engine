@@ -45,6 +45,7 @@ In large-scale enterprise systems, exporting massive datasets (hundreds of thous
    - Diverts massive exports (100k ~ 2,000,000+ rows) to **Large Queue**, chunking data across multiple `.xlsx` workbooks and compressing into a single `.zip` on the fly.
 4. **Pluggable Multi-Storage Architecture (6 Providers)**:
    - Seamlessly store and serve files across all cluster nodes using **Local Disk**, **Shared NAS (NFS/CIFS)**, **AWS S3 / MinIO**, **Naver Cloud Platform (NCP)**, **Azure Blob Storage**, or **Google Cloud Storage (GCS)**.
+   - `LOCAL`/`NAS` work out of the box with zero extra dependencies; the four cloud providers stream directly to/from disk through the official AWS/Azure/GCP SDKs (never buffering a full file in the JVM heap) and are opt-in - see [Optional Storage Dependencies](#-optional-storage-dependencies).
 5. **Crash & Orphan Recovery (Heartbeat Scanner)**:
    - Server restarts automatically detect stale jobs on the restarting node and clean up dangling temporary files.
    - Background orphan scanner reclaims orphaned jobs if an application node abruptly dies.
@@ -150,12 +151,40 @@ dependencies {
 
 ---
 
+### 📦 Optional Storage Dependencies
+
+`LOCAL` and `NAS` storage work with no extra dependency. The cloud providers are `compileOnly` in
+the starter so picking one doesn't force the other three's SDKs onto every consumer - add only
+the one(s) you use:
+
+| `storage-type` | Add this dependency |
+|---|---|
+| `S3` or `NCP` (S3-compatible) | `implementation 'software.amazon.awssdk:s3:2.25.60'` |
+| `AZURE` | `implementation 'com.azure:azure-storage-blob:12.25.3'` |
+| `GCP` | `implementation 'com.google.cloud:google-cloud-storage:2.36.1'` |
+
+If you select a cloud `storage-type` without its SDK on the classpath, startup fails fast with a
+message telling you exactly which dependency to add, instead of a bare `NoClassDefFoundError`.
+
+---
+
 ### 2. Database Schema Setup
 
 Execute the DDL script for your database:
 - MySQL / MariaDB: [`schema-mysql.sql`](src/main/resources/schema-mysql.sql)
 - PostgreSQL: [`schema-postgresql.sql`](src/main/resources/schema-postgresql.sql)
 - H2: [`schema-h2.sql`](src/main/resources/schema-h2.sql)
+
+The MyBatis mapper XML ships inside the library jar under `mapper/haexcel/`, so you also need to
+point MyBatis at it (it is not on MyBatis's default scan path since it doesn't sit next to the
+mapper interface's package):
+
+```yaml
+mybatis:
+  mapper-locations: classpath:mapper/haexcel/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+```
 
 ---
 
@@ -172,8 +201,23 @@ ha-excel:
   storage-type: S3               # LOCAL | NAS | S3 | NCP | AZURE | GCP
   s3-bucket: my-excel-bucket
   s3-region: ap-northeast-2
-  s3-endpoint: http://minio:9000 # Optional (for MinIO)
+  s3-endpoint: http://minio:9000 # Optional (for MinIO / self-hosted S3-compatible storage)
+  s3-access-key: ${AWS_ACCESS_KEY_ID:}     # Optional - falls back to the AWS default credential chain (IAM role, env vars, etc.) when blank
+  s3-secret-key: ${AWS_SECRET_ACCESS_KEY:}
 ```
+
+> A cloud `storage-type` (`S3` / `NCP` / `AZURE` / `GCP`) also needs its SDK on your classpath -
+> see [Optional Storage Dependencies](#-optional-storage-dependencies) below. `LOCAL` and `NAS`
+> need nothing extra.
+
+---
+
+### 👉 Fastest way to see it work
+
+Don't want to wire this up from scratch first? [`examples/sample-server`](examples/sample-server)
+is a complete, runnable Spring Boot app (H2 + dummy data provider) you can clone and
+`./gradlew bootRun` immediately - see [Frontend Client Example](#-frontend-client-example-react--typescript)
+below for pairing it with the React demo.
 
 ---
 
@@ -249,29 +293,45 @@ public class StreamingOrderDataProvider implements ExcelDataProvider, ExcelStrea
 
 ---
 
-## 💻 Frontend Client Example (React + TypeScript)
+## 🖥️ Runnable Examples
 
-We provide a production-ready, runnable frontend example module in [`examples/client-react`](examples/client-react):
-- **`useExcelExport` Hook**: Asynchronous export submission, status polling, progress bar %, and auto-download.
-- **`ExcelExportButton` Component**: Export button with floating progress modal and cancel button.
-- **AG Grid Adapter**: Utility function to convert AG Grid column definitions to `ExcelColumnDef[]`.
+Two example modules, meant to be run together:
+
+- [`examples/sample-server`](examples/sample-server) - a complete, runnable **Spring Boot backend**
+  (H2 in-memory DB + a dummy `ExcelDataProvider`) wiring up this library end to end. Clone and
+  `./gradlew bootRun`, no other setup needed.
+- [`examples/client-react`](examples/client-react) - a production-ready **React + TypeScript**
+  frontend:
+  - **`useExcelExport` Hook**: Asynchronous export submission, status polling, progress bar %, and auto-download.
+  - **`ExcelExportButton` Component**: Export button with floating progress modal and cancel button.
+  - **AG Grid Adapter**: Utility function to convert AG Grid column definitions to `ExcelColumnDef[]`.
 
 ```bash
+# terminal 1
+cd examples/sample-server
+./gradlew bootRun
+
+# terminal 2
 cd examples/client-react
 npm install
 npm run dev
 ```
+Open `http://localhost:3000` and click export - it talks to the real backend above.
 
 ---
 
 ## 🐳 Running the 2-Node Cluster Demo
 
-We provide a complete Docker Compose demonstration environment consisting of:
+We provide a complete Docker Compose demonstration environment, built from `examples/sample-server`,
+consisting of:
 - **Nginx** (Load Balancer on port 80)
 - **Node 1** (Spring Boot on port 8081)
 - **Node 2** (Spring Boot on port 8082)
 - **MariaDB** (Relational DB on port 3306)
 - **MinIO** (S3-compatible Object Storage on port 9000 / Console 9001)
+
+Both nodes share the same MinIO bucket, so a file generated on Node 1 downloads correctly from
+Node 2 - this is the actual cross-node storage behavior the multi-storage architecture exists for.
 
 ```bash
 docker-compose up --build -d

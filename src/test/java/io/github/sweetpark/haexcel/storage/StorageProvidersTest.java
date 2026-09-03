@@ -2,7 +2,6 @@ package io.github.sweetpark.haexcel.storage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.sweetpark.haexcel.storage.azure.AzureBlobStorageProvider;
 import io.github.sweetpark.haexcel.storage.gcp.GcpCloudStorageProvider;
 import io.github.sweetpark.haexcel.storage.local.LocalDiskStorageProvider;
 import io.github.sweetpark.haexcel.storage.nas.NasStorageProvider;
@@ -66,55 +65,57 @@ class StorageProvidersTest {
     assertNull(provider.getResource("nas-sample.xlsx"));
   }
 
+  // storeFile/getResource/delete for S3, NCP, Azure, and GCP are covered by
+  // CloudStorageProvidersTest, which exercises the real SDK calls against Testcontainers-backed
+  // emulators (MinIO / Azurite / fake-gcs-server) instead of asserting against an in-memory mock.
+  // The construction/getter tests below don't need a live endpoint - client construction in the
+  // AWS and GCP SDKs is lazy (no network call until the first real operation), so these run
+  // without Docker.
+
   @Test
-  @DisplayName("Cloud storage providers (S3, NCP, Azure, GCP) store and retrieve properly")
-  void testCloudStorageProviders() throws Exception {
-    Path sample = tempDir.resolve("cloud-sample.xlsx");
-    Files.writeString(sample, "cloud test data");
+  @DisplayName("AwsS3StorageProvider exposes its configuration and closes cleanly")
+  void testS3ProviderConstructionVariants() throws Exception {
+    try (AwsS3StorageProvider withEndpointAndCreds =
+        new AwsS3StorageProvider(
+            "bucket-a", "us-east-1", "http://localhost:9000", "key", "secret")) {
+      assertEquals(StorageType.S3, withEndpointAndCreds.getType());
+      assertEquals("bucket-a", withEndpointAndCreds.getBucketName());
+      assertEquals("us-east-1", withEndpointAndCreds.getRegion());
+      assertEquals("http://localhost:9000", withEndpointAndCreds.getEndpoint());
+    }
 
-    // AWS S3
-    AwsS3StorageProvider s3 = new AwsS3StorageProvider("test-bucket", "ap-northeast-2");
-    assertEquals(StorageType.S3, s3.getType());
-    s3.storeFile(
-        sample,
-        "s3-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(s3.getResource("s3-test.xlsx"));
-    s3.delete("s3-test.xlsx");
-    assertNull(s3.getResource("s3-test.xlsx"));
+    // No endpoint override, no static credentials -> default AWS region/credential chain branch
+    // (the S3Client itself falls back to ap-northeast-2 internally; getRegion() reflects the raw
+    // constructor argument, which stays null here).
+    try (AwsS3StorageProvider defaults = new AwsS3StorageProvider("bucket-b", null)) {
+      assertNull(defaults.getRegion());
+      assertNull(defaults.getEndpoint());
+    }
+  }
 
-    // NCP Object Storage
-    NcpObjectStorageProvider ncp = new NcpObjectStorageProvider("ncp-bucket", "kr");
-    assertEquals(StorageType.NCP, ncp.getType());
-    ncp.storeFile(
-        sample,
-        "ncp-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(ncp.getResource("ncp-test.xlsx"));
-    ncp.delete("ncp-test.xlsx");
-    assertNull(ncp.getResource("ncp-test.xlsx"));
+  @Test
+  @DisplayName("NcpObjectStorageProvider falls back to the default NCP endpoint when blank")
+  void testNcpProviderConstructionVariants() throws Exception {
+    try (NcpObjectStorageProvider withBlankEndpoint =
+        new NcpObjectStorageProvider("ncp-bucket", "kr", "", "key", "secret")) {
+      assertEquals(StorageType.NCP, withBlankEndpoint.getType());
+    }
+    try (NcpObjectStorageProvider defaults = new NcpObjectStorageProvider("ncp-bucket", "kr")) {
+      assertEquals(StorageType.NCP, defaults.getType());
+    }
+  }
 
-    // Azure Blob Storage
-    AzureBlobStorageProvider azure = new AzureBlobStorageProvider("azure-cont", "fake-conn");
-    assertEquals(StorageType.AZURE, azure.getType());
-    azure.storeFile(
-        sample,
-        "azure-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(azure.getResource("azure-test.xlsx"));
-    azure.delete("azure-test.xlsx");
-    assertNull(azure.getResource("azure-test.xlsx"));
+  @Test
+  @DisplayName("GcpCloudStorageProvider exposes its configuration")
+  void testGcpProviderConstructionVariants() {
+    GcpCloudStorageProvider withHost =
+        new GcpCloudStorageProvider("gcp-bucket", "test-project", "http://localhost:4443");
+    assertEquals(StorageType.GCP, withHost.getType());
+    assertEquals("gcp-bucket", withHost.getBucketName());
+    assertEquals("test-project", withHost.getProjectId());
 
-    // GCP Cloud Storage
-    GcpCloudStorageProvider gcp = new GcpCloudStorageProvider("gcp-bucket", "proj-123");
-    assertEquals(StorageType.GCP, gcp.getType());
-    gcp.storeFile(
-        sample,
-        "gcp-test.xlsx",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    assertNotNull(gcp.getResource("gcp-test.xlsx"));
-    gcp.delete("gcp-test.xlsx");
-    assertNull(gcp.getResource("gcp-test.xlsx"));
+    GcpCloudStorageProvider defaults = new GcpCloudStorageProvider("gcp-bucket", "test-project");
+    assertEquals("test-project", defaults.getProjectId());
   }
 
   @Test
