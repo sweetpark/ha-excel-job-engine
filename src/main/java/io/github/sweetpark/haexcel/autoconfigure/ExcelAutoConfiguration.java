@@ -122,8 +122,11 @@ public class ExcelAutoConfiguration {
    * Cloud storage SDKs are optional (compileOnly) so that LOCAL/NAS users never pull them in. Fail
    * fast with an actionable message instead of a cryptic NoClassDefFoundError when a consumer
    * selects a cloud storage-type without adding the matching SDK dependency.
+   *
+   * <p>Package-private (not private) so it can be exercised directly in tests without requiring a
+   * live cloud endpoint.
    */
-  private static void requireSdkOnClasspath(
+  static void requireSdkOnClasspath(
       String requiredClassName, String gradleCoordinate, StorageType storageType) {
     try {
       Class.forName(requiredClassName, false, ExcelAutoConfiguration.class.getClassLoader());
